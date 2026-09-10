@@ -7,9 +7,10 @@
 
 ## Layout quirks
 
-- Django settings module is `config.settings` — the project package is the root-level `config/` directory (`settings.py`, `urls.py`, `wsgi.py`, `asgi.py`), NOT `src/school_attendance/`.
-- `src/school_attendance/` is only an empty placeholder required by the `uv_build` backend (`pyproject.toml`); its `school-attendance` entry point script is unused. Put Django code in root `config/` or new Django apps, not in `src/`.
-- No Django apps exist yet (`INSTALLED_APPS` has only defaults). Database is SQLite (`db.sqlite3` at repo root) and no migrations exist yet — run `manage.py makemigrations` after adding models.
+- `manage.py` stays at the repo root; it works because `uv run` installs the project (editable) — always use `uv run manage.py <command>`, not bare `python manage.py`.
+- Django settings module is `config.settings` — the project package is `src/config/` (`settings.py`, `urls.py`, `wsgi.py`, `asgi.py`).
+- Django apps live in `src/` (e.g. `src/school/`); `uv_build` packages them via `module-name = ["config", "school"]` in `pyproject.toml` — add new top-level app packages to that list.
+- `INSTALLED_APPS` includes the `school` app (models for the attendance domain). Database is SQLite (`db.sqlite3` at repo root).
 - Email is configured via a `MAILERS` setting with console backend (dev only).
 
 ## OpenSpec workflow

@@ -1,0 +1,33 @@
+{% extends "school/base.html" %}
+
+{% block title %}My Classrooms — Teacher Panel{% endblock %}
+
+{% block content %}
+    <h1>My Classrooms</h1>
+    {% for classroom in classrooms %}
+        <div class="card">
+            <h2>
+                <a href="{% url 'school:classroom_detail' classroom.pk %}">{{ classroom.subject }}</a>
+            </h2>
+            <p>{{ classroom.student_group }} — {{ classroom.student_count }} student(s)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for slot in classroom.schedule_slots.all %}
+                        <tr>
+                            <td>{{ slot.get_weekday_display }}</td>
+                            <td>{{ slot.start_time }}–{{ slot.end_time }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% empty %}
+        <p>No classrooms assigned to you yet.</p>
+    {% endfor %}
+{% endblock %}

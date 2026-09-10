@@ -15,4 +15,5 @@ rules:
     - Keep proposals under 500 words
     - Always include a "Non-goals" section
   tasks:
+    - Use Given/When/Then format
     - Break tasks into chunks of max 2 hours

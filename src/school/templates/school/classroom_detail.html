@@ -1,0 +1,35 @@
+{% extends "school/base.html" %}
+
+{% block title %}{{ classroom.subject }} — Teacher Panel{% endblock %}
+
+{% block content %}
+    <h1>{{ classroom.subject }}</h1>
+    <p>
+        <strong>Group:</strong> {{ classroom.student_group }}
+        — {{ classroom.student_group.students.count }} student(s)
+    </p>
+
+    <div class="card">
+        <h2>Schedule</h2>
+        <ul>
+            {% for slot in classroom.schedule_slots.all %}
+                <li>{{ slot.get_weekday_display }} {{ slot.start_time }}–{{ slot.end_time }}</li>
+            {% empty %}
+                <li>No schedule slots.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Students</h2>
+        <ul>
+            {% for student in classroom.student_group.students.all %}
+                <li>{{ student }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div id="session-panel">
+        {% include "school/partials/session_panel.html" %}
+    </div>
+{% endblock %}
