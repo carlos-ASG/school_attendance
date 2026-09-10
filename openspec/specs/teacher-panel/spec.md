@@ -72,6 +72,17 @@ The panel SHALL provide a session page where the Teacher can set each student's 
 - **WHEN** the Teacher opens a session page
 - **THEN** every student of the classroom's group is listed with their current status selectable
 
+### Requirement: Teacher panel text is in Spanish
+The teacher panel SHALL display all user-visible text in Spanish, including page titles, headings, table headers, form labels, buttons, status labels, and confirmation or error messages. Code identifiers, model field names, choice values, and URL paths SHALL remain in English.
+
+#### Scenario: Panel renders in Spanish
+- **WHEN** a Teacher opens any panel page
+- **THEN** every visible text element is shown in Spanish
+
+#### Scenario: Attendance statuses shown in Spanish
+- **WHEN** the Teacher selects a student's attendance status
+- **THEN** the status options are displayed in Spanish (e.g. Presente, Ausente, Tarde, Justificado)
+
 ### Requirement: Admins use Django admin
 Admin users SHALL manage all entities (Students, Teachers, Subjects, Student Groups, Classrooms, Sessions, Records) through the Django admin site and SHALL NOT need the teacher panel.
 

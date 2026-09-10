@@ -31,6 +31,12 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'unfold',
+    'unfold.contrib.filters',
+    'unfold.contrib.forms',
+    'unfold.contrib.inlines',
+    'unfold.contrib.import_export',
+    'import_export',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -103,7 +109,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es'
 
 LOGIN_URL = '/panel/login/'
 LOGIN_REDIRECT_URL = '/panel/'
@@ -120,6 +126,57 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+# Django Unfold admin theme
+# https://unfoldadmin.com/docs/
+
+UNFOLD = {
+    'SITE_TITLE': 'Asistencia Escolar',
+    'SITE_HEADER': 'Administración de Asistencia Escolar',
+    'SIDEBAR': {
+        'navigation': [
+            {
+                'title': 'Asistencia',
+                'items': [
+                    {
+                        'title': 'Estudiantes',
+                        'link': '/admin/school/student/',
+                    },
+                    {
+                        'title': 'Grupos de estudiantes',
+                        'link': '/admin/school/studentgroup/',
+                    },
+                    {
+                        'title': 'Sesiones de asistencia',
+                        'link': '/admin/school/attendancesession/',
+                    },
+                    {
+                        'title': 'Reportes',
+                        'link': '/admin/school/attendancesession/reports/',
+                    },
+                ],
+            },
+            {
+                'title': 'Académico',
+                'items': [
+                    {
+                        'title': 'Profesores',
+                        'link': '/admin/school/teacher/',
+                    },
+                    {
+                        'title': 'Materias',
+                        'link': '/admin/school/subject/',
+                    },
+                    {
+                        'title': 'Aulas',
+                        'link': '/admin/school/classroom/',
+                    },
+                ],
+            },
+        ],
+    },
+}
 
 
 # Email
