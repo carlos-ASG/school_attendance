@@ -1,12 +1,21 @@
+from typing import Any
+
+from django.db.models import QuerySet
 from import_export import resources, widgets
 from import_export.fields import Field
+
 from .models import Student, StudentGroup
 
 
 class NullableIdWidget(widgets.Widget):
     """Converts blank ids to None so rows without id create new records."""
 
-    def clean(self, value, row=None, **kwargs):
+    def clean(
+        self,
+        value: Any,
+        row: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> int | None:
         if value is None or str(value).strip() == '':
             return None
         return int(value)
@@ -20,10 +29,15 @@ class GroupNameWidget(widgets.ManyToManyWidget):
     silently skipped or created.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(model=StudentGroup, field='name', separator=',')
 
-    def clean(self, value, row=None, **kwargs):
+    def clean(
+        self,
+        value: Any,
+        row: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> QuerySet[StudentGroup]:
         if not value:
             return self.model.objects.none()
         names = [name.strip() for name in str(value).split(self.separator) if name.strip()]

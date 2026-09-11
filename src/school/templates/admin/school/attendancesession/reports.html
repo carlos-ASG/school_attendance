@@ -38,11 +38,15 @@
 <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
     <div class="bg-white rounded-md border border-gray-200 p-4 dark:bg-base-800 dark:border-base-700">
         <h2 class="mb-4 text-base font-semibold text-gray-900 dark:text-gray-50">Asistencia por día</h2>
-        <div class="h-64">{% include "unfold/components/chart/line.html" with data=line_data %}</div>
+        <div class="h-64">
+            {% component "unfold/components/chart/line.html" with component_class="LineChartComponent" start=start end=end %}{% endcomponent %}
+        </div>
     </div>
     <div class="bg-white rounded-md border border-gray-200 p-4 dark:bg-base-800 dark:border-base-700">
         <h2 class="mb-4 text-base font-semibold text-gray-900 dark:text-gray-50">Asistencia por aula</h2>
-        <div class="h-64">{% include "unfold/components/chart/bar.html" with data=bar_data %}</div>
+        <div class="h-64">
+            {% component "unfold/components/chart/bar.html" with component_class="BarChartComponent" start=start end=end %}{% endcomponent %}
+        </div>
     </div>
 </div>
 
@@ -50,7 +54,7 @@
     <div class="bg-white rounded-md border border-gray-200 p-4 dark:bg-base-800 dark:border-base-700">
         <h2 class="mb-4 text-base font-semibold text-gray-900 dark:text-gray-50">Asistencia por estado</h2>
         <div class="relative h-64">
-            <canvas class="chart" data-type="pie" data-value="{{ pie_data }}"></canvas>
+            {% component "unfold/components/chart/pie.html" with component_class="PieChartComponent" start=start end=end %}{% endcomponent %}
         </div>
     </div>
 </div>

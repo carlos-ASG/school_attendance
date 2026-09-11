@@ -1,9 +1,7 @@
-import json
 from datetime import date, timedelta
 
 from django import forms
 from django.contrib import admin
-from django.db.models import Count
 from django.urls import path
 from django.views.generic import TemplateView
 from import_export.admin import ImportExportModelAdmin
@@ -112,77 +110,16 @@ class ReportsView(UnfoldModelAdminViewMixin, TemplateView):
             start = form.cleaned_data.get('start_date') or default_start
             end = form.cleaned_data.get('end_date') or default_end
 
-        records_in_range = AttendanceRecord.objects.filter(
-            session__date__range=(start, end)
-        )
-
-        # Summary metrics
-        students_count = Student.objects.count()
-        classrooms_count = Classroom.objects.count()
-        sessions_count = AttendanceSession.objects.filter(
-            date__range=(start, end)
-        ).count()
-
-        # Pie chart: status distribution
-        status_labels = {
-            value: label for value, label in AttendanceRecord.Status.choices
-        }
-        status_order = [value for value, _ in AttendanceRecord.Status.choices]
-        status_counts = dict(
-            records_in_range.values('status').annotate(count=Count('id'))
-            .values_list('status', 'count')
-        )
-        pie_data = {
-            'labels': [status_labels[value] for value in status_order],
-            'datasets': [{'data': [status_counts.get(value, 0) for value in status_order]}],
-        }
-
-        # Line chart: records per day split by status
-        day_status = (
-            records_in_range.values('session__date', 'status')
-            .annotate(count=Count('id'))
-        )
-        counts = {
-            (row['session__date'], row['status']): row['count'] for row in day_status
-        }
-        days = []
-        cursor = start
-        while cursor <= end:
-            days.append(cursor)
-            cursor += timedelta(days=1)
-        line_data = {
-            'labels': [day.strftime('%d/%m') for day in days],
-            'datasets': [
-                {
-                    'label': status_labels[value],
-                    'data': [counts.get((day, value), 0) for day in days],
-                }
-                for value in status_order
-            ],
-        }
-
-        # Bar chart: records grouped by classroom (subject name)
-        classroom_rows = (
-            records_in_range.values('session__classroom__subject__name')
-            .annotate(count=Count('id'))
-            .order_by('-count')
-        )
-        bar_data = {
-            'labels': [row['session__classroom__subject__name'] or '-' for row in classroom_rows],
-            'datasets': [{'label': 'Registros', 'data': [row['count'] for row in classroom_rows]}],
-        }
-
         context.update(
             {
                 'form': form,
                 'start': start,
                 'end': end,
-                'students_count': students_count,
-                'classrooms_count': classrooms_count,
-                'sessions_count': sessions_count,
-                'pie_data': json.dumps(pie_data),
-                'line_data': json.dumps(line_data),
-                'bar_data': json.dumps(bar_data),
+                'students_count': Student.objects.count(),
+                'classrooms_count': Classroom.objects.count(),
+                'sessions_count': AttendanceSession.objects.filter(
+                    date__range=(start, end)
+                ).count(),
             }
         )
         return context
