@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the teacher-facing web panel: authentication, role-based routing, classroom views, and HTMX-driven session and attendance recording, while admins continue to use the Django admin site.
+Define the teacher-facing web panel: authentication, role-based routing, course views, session CRUD, and HTMX-driven attendance recording with a cyclic status button, while admins continue to use the Django admin site.
 
 ## Requirements
 
@@ -19,7 +19,7 @@ The teacher panel SHALL use Django's built-in authentication. Only authenticated
 
 #### Scenario: Teacher logs in
 - **WHEN** a user linked to a Teacher logs in with valid credentials
-- **THEN** they reach the panel dashboard listing their classrooms
+- **THEN** they reach the panel dashboard listing their courses
 
 ### Requirement: Post-login routing by role
 After login, the system SHALL route users by role: users who are staff SHALL be directed to the Django admin site, and teacher users SHALL be directed to the teacher panel.
@@ -32,45 +32,76 @@ After login, the system SHALL route users by role: users who are staff SHALL be 
 - **WHEN** a teacher (non-staff) user logs in
 - **THEN** they are redirected to the teacher panel dashboard
 
-### Requirement: Teacher classroom list
-The panel dashboard SHALL list only the Classrooms of the logged-in Teacher, showing each Classroom's Subject, Student Group, student count, and schedule slots.
+### Requirement: Teacher course list
+The panel dashboard SHALL list only the Courses of the logged-in Teacher, showing each Course's Subject, Student Group, student count, schedule slots, and physical classroom.
 
-#### Scenario: Teacher sees only own classrooms
+#### Scenario: Teacher sees only own courses
 - **WHEN** a Teacher opens the dashboard
-- **THEN** only Classrooms where that Teacher is assigned are listed
+- **THEN** only Courses where that Teacher is assigned are listed
 
-#### Scenario: Teacher opens a classroom they do not teach
-- **WHEN** a Teacher requests the panel page of another teacher's Classroom
+#### Scenario: Teacher opens a course they do not teach
+- **WHEN** a Teacher requests the panel page of another teacher's Course
 - **THEN** the system denies access
 
-### Requirement: Classroom detail view
-The panel SHALL provide a detail page per Classroom showing the Subject, the Student Group's members, the schedule slots, and the list of that Classroom's attendance sessions (most recent first), with a way to create a new session.
+### Requirement: Course detail view
+The panel SHALL provide a detail page per Course showing the Subject, the physical classroom, the Student Group's members, the schedule slots, and the list of that Course's attendance sessions (most recent first), with a way to create a new session.
 
-#### Scenario: Teacher opens a classroom
-- **WHEN** the Teacher opens one of their Classrooms
-- **THEN** the page shows subject, schedule, student members, and the classroom's sessions
+#### Scenario: Teacher opens a course
+- **WHEN** the Teacher opens one of their Courses
+- **THEN** the page shows subject, physical classroom, schedule, student members, and the course's sessions
 
 ### Requirement: Session creation from the panel
-The panel SHALL allow the Teacher to create an attendance session for one of their Classrooms by choosing a date. The creation request SHALL be submitted with HTMX and the session list SHALL update without a full page reload.
+The panel SHALL allow the Teacher to create an attendance session for one of their Courses by choosing a date. The creation request SHALL be submitted with HTMX and the session list SHALL update without a full page reload.
 
 #### Scenario: Teacher creates a session via HTMX
-- **WHEN** the Teacher picks a date and submits the create-session form on a classroom page
+- **WHEN** the Teacher picks a date and submits the create-session form on a course page
 - **THEN** a session is created for that date, per-student records are generated, and the session list updates in place without a full page reload
 
 #### Scenario: Duplicate session date handled
-- **WHEN** the Teacher submits a create-session form for a date that already has a session for that Classroom
+- **WHEN** the Teacher submits a create-session form for a date that already has a session for that Course
 - **THEN** the form shows a validation error and no duplicate session is created
 
+### Requirement: Session update and deletion from the panel
+The panel SHALL allow the Teacher to edit an Attendance Session's date and to delete an Attendance Session. Edit and delete requests SHALL be submitted with HTMX and the session list SHALL update without a full page reload.
+
+#### Scenario: Teacher edits a session date via HTMX
+- **WHEN** the Teacher changes the date of an existing session and submits the edit form
+- **THEN** the session is updated, the new date respects the one-session-per-course-per-date rule, and the session list updates in place
+
+#### Scenario: Teacher deletes a session via HTMX
+- **WHEN** the Teacher confirms deletion of a session
+- **THEN** the session and its records are removed and the session list updates in place
+
+### Requirement: Cyclic attendance status button
+The panel SHALL render each student's attendance status as a single button instead of radio buttons. Clicking the button SHALL advance the record's status to the next value in the cycle PRESENT → ABSENT → LATE → EXCUSED and back to PRESENT, persisting the change immediately without a full page reload.
+
+#### Scenario: Teacher cycles a student's status
+- **WHEN** the course Teacher clicks the status button for a student
+- **THEN** the record's status advances to the next value in the cycle
+- **AND** the updated status is saved on the server immediately
+- **AND** only the status button is re-rendered via HTMX
+
+#### Scenario: Another teacher's session record
+- **WHEN** a Teacher who is not the Course's Teacher attempts to toggle a record's status
+- **THEN** the system denies the action and the status is unchanged
+
+### Requirement: Attendance notes from the panel
+The panel SHALL provide a notes field on each Attendance Record so the Teacher can record a short reason or comment for a student's attendance.
+
+#### Scenario: Teacher adds a note to a record
+- **WHEN** the Teacher enters a note for a student's record and saves
+- **THEN** the note is stored on that Attendance Record
+
 ### Requirement: Attendance recording from the panel
-The panel SHALL provide a session page where the Teacher can set each student's status (PRESENT, ABSENT, LATE, EXCUSED) and save. Saving SHALL be submitted with HTMX and update the student list in place with a confirmation, without a full page reload.
+The panel SHALL provide a session page where the Teacher can set each student's status (PRESENT, ABSENT, LATE, EXCUSED), add an optional note, and save. Saving SHALL be submitted with HTMX and update the student list in place with a confirmation, without a full page reload.
 
 #### Scenario: Teacher records attendance via HTMX
-- **WHEN** the Teacher changes statuses on the session page and saves
+- **WHEN** the Teacher changes statuses or notes on the session page and saves
 - **THEN** all records are updated and the student list re-renders in place with a success confirmation
 
 #### Scenario: All group students listed with statuses
 - **WHEN** the Teacher opens a session page
-- **THEN** every student of the classroom's group is listed with their current status selectable
+- **THEN** every student of the course's group is listed with their current status and note field
 
 ### Requirement: Teacher panel text is in Spanish
 The teacher panel SHALL display all user-visible text in Spanish, including page titles, headings, table headers, form labels, buttons, status labels, and confirmation or error messages. Code identifiers, model field names, choice values, and URL paths SHALL remain in English.
@@ -84,7 +115,7 @@ The teacher panel SHALL display all user-visible text in Spanish, including page
 - **THEN** the status options are displayed in Spanish (e.g. Presente, Ausente, Tarde, Justificado)
 
 ### Requirement: Admins use Django admin
-Admin users SHALL manage all entities (Students, Teachers, Subjects, Student Groups, Classrooms, Sessions, Records) through the Django admin site and SHALL NOT need the teacher panel.
+Admin users SHALL manage all entities (Students, Teachers, Subjects, Student Groups, Courses, Sessions, Records) through the Django admin site and SHALL NOT need the teacher panel.
 
 #### Scenario: Admin manages everything from admin site
 - **WHEN** an Admin uses the Django admin site

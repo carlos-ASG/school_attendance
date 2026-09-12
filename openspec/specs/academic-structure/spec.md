@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the core academic entities (Students, Teachers, Subjects, Student Groups, and Classrooms) that make up the attendance domain and how they relate to each other.
+Define the core academic entities (Students, Teachers, Subjects, Student Groups, and Courses) that make up the attendance domain and how they relate to each other.
 
 ## Requirements
 
@@ -37,14 +37,14 @@ The system SHALL allow Admin users to create, update, and delete Subject records
 
 #### Scenario: Admin creates a subject
 - **WHEN** an Admin creates a Subject with a name
-- **THEN** the Subject is saved and can be assigned to Classrooms
+- **THEN** the Subject is saved and can be assigned to Courses
 
 #### Scenario: Duplicate subject name rejected
 - **WHEN** an Admin creates a Subject with a name that already exists
 - **THEN** the system rejects the duplicate
 
 ### Requirement: Student group management
-The system SHALL allow Admin users to create named Student Groups and assign Students to them. A Student MAY belong to multiple groups, and a group MAY be used by multiple Classrooms.
+The system SHALL allow Admin users to create named Student Groups and assign Students to them. A Student MAY belong to multiple groups, and a group MAY be used by multiple Courses.
 
 #### Scenario: Admin creates a group with students
 - **WHEN** an Admin creates a Student Group with a name and selects Students
@@ -52,30 +52,41 @@ The system SHALL allow Admin users to create named Student Groups and assign Stu
 
 #### Scenario: Group membership changes
 - **WHEN** an Admin adds or removes a Student from a group
-- **THEN** the group's membership reflects the change; existing Classrooms using the group show the updated membership
+- **THEN** the group's membership reflects the change; existing Courses using the group show the updated membership
 
-### Requirement: Classroom composition
-The system SHALL represent a Classroom as exactly one Student Group, one Teacher, one Subject, and one schedule. The schedule SHALL consist of one or more weekly slots, each with a weekday, a start time, and an end time.
+### Requirement: Course composition
+The system SHALL represent a Course as exactly one Student Group, one Teacher, one Subject, one physical classroom, and one schedule. The schedule SHALL consist of one or more weekly slots, each with a weekday, a start time, and an end time.
 
-#### Scenario: Admin creates a classroom
-- **WHEN** an Admin creates a Classroom selecting a group, a teacher, a subject, and at least one schedule slot
-- **THEN** the Classroom is saved with its schedule
+#### Scenario: Admin creates a course
+- **WHEN** an Admin creates a Course selecting a group, a teacher, a subject, a physical classroom, and at least one schedule slot
+- **THEN** the Course is saved with its schedule and classroom
 
-#### Scenario: Classroom requires a schedule slot
-- **WHEN** an Admin saves a Classroom with no schedule slots
-- **THEN** the system rejects it, because a classroom must have a schedule
+#### Scenario: Course requires a schedule slot
+- **WHEN** an Admin saves a Course with no schedule slots
+- **THEN** the system rejects it, because a course must have a schedule
 
-### Requirement: Classroom uniqueness
-The system SHALL allow the same Teacher to teach the same Subject in multiple Classrooms, as long as each Classroom differs by Student Group and/or schedule. A Classroom SHALL be unique for the combination of Teacher, Subject, and Student Group; different meeting times for that combination SHALL be expressed as additional schedule slots of the same Classroom.
+### Requirement: Course uniqueness
+The system SHALL allow the same Teacher to teach the same Subject in multiple Courses, as long as each Course differs by Student Group and/or schedule. A Course SHALL be unique for the combination of Teacher, Subject, and Student Group; different meeting times for that combination SHALL be expressed as additional schedule slots of the same Course.
 
 #### Scenario: Same teacher and subject, different groups
-- **WHEN** an Admin creates two Classrooms with the same Teacher and Subject but different Student Groups
-- **THEN** both Classrooms are saved as distinct classrooms
+- **WHEN** an Admin creates two Courses with the same Teacher and Subject but different Student Groups
+- **THEN** both Courses are saved as distinct courses
 
 #### Scenario: Duplicate teacher, subject and group rejected
-- **WHEN** an Admin creates a Classroom with a Teacher, Subject and Student Group combination that already exists
-- **THEN** the system rejects it as a duplicate classroom
+- **WHEN** an Admin creates a Course with a Teacher, Subject and Student Group combination that already exists
+- **THEN** the system rejects it as a duplicate course
 
 #### Scenario: Same teacher, subject and group on more days
-- **WHEN** an Admin adds another schedule slot (e.g., Wednesday) to an existing Classroom
-- **THEN** the Classroom's schedule covers both slots without creating a new Classroom
+- **WHEN** an Admin adds another schedule slot (e.g., Wednesday) to an existing Course
+- **THEN** the Course's schedule covers both slots without creating a new Course
+
+### Requirement: Course physical classroom
+A Course SHALL have a physical classroom identifier stored as a string. The field SHALL have a database default of an empty string and SHALL be optional in forms.
+
+#### Scenario: Admin creates a course with a classroom
+- **WHEN** an Admin creates a Course and enters the physical classroom identifier
+- **THEN** the Course is saved with that classroom
+
+#### Scenario: Existing courses migrate with empty classroom
+- **WHEN** the migration runs on existing data
+- **THEN** every existing Course receives an empty string for the classroom field
