@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from django import forms
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from django.urls import path
 from django.views.generic import TemplateView
 from import_export.admin import ImportExportModelAdmin
@@ -12,8 +13,8 @@ from unfold.views import UnfoldModelAdminViewMixin
 from .models import (
     AttendanceRecord,
     AttendanceSession,
-    Classroom,
     ClassSchedule,
+    Course,
     Student,
     StudentGroup,
     Subject,
@@ -62,9 +63,9 @@ class ClassScheduleInline(TabularInline):
     extra = 1
 
 
-@admin.register(Classroom)
-class ClassroomAdmin(ModelAdmin):
-    list_display = ('subject', 'teacher', 'student_group', 'student_count')
+@admin.register(Course)
+class CourseAdmin(ModelAdmin):
+    list_display = ('subject', 'teacher', 'student_group', 'classroom', 'student_count')
     list_filter = ('subject', 'teacher', 'student_group')
     search_fields = ('subject__name', 'teacher__first_name', 'teacher__last_name', 'student_group__name')
     inlines = [ClassScheduleInline]
@@ -77,6 +78,27 @@ class ClassroomAdmin(ModelAdmin):
 class AttendanceRecordInline(TabularInline):
     model = AttendanceRecord
     extra = 0
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'student':
+            session = self.get_session(request)
+            if session is None:
+                kwargs['queryset'] = Student.objects.none()
+            else:
+                kwargs['queryset'] = session.course.student_group.students.all()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def get_session(self, request):
+        try:
+            object_id = request.resolver_match.kwargs.get('object_id')
+        except (AttributeError, KeyError):
+            return None
+        if object_id is None:
+            return None
+        try:
+            return AttendanceSession.objects.get(pk=object_id)
+        except (AttendanceSession.DoesNotExist, ValueError, TypeError):
+            return None
 
 
 class ReportsFilterForm(forms.Form):
@@ -116,7 +138,7 @@ class ReportsView(UnfoldModelAdminViewMixin, TemplateView):
                 'start': start,
                 'end': end,
                 'students_count': Student.objects.count(),
-                'classrooms_count': Classroom.objects.count(),
+                'courses_count': Course.objects.count(),
                 'sessions_count': AttendanceSession.objects.filter(
                     date__range=(start, end)
                 ).count(),
@@ -127,8 +149,8 @@ class ReportsView(UnfoldModelAdminViewMixin, TemplateView):
 
 @admin.register(AttendanceSession)
 class AttendanceSessionAdmin(ModelAdmin):
-    list_display = ('classroom', 'date', 'created_by', 'created_at')
-    list_filter = ('classroom', 'date', 'created_by')
+    list_display = ('course', 'date', 'created_by', 'created_at')
+    list_filter = ('course', 'date', 'created_by')
     inlines = [AttendanceRecordInline]
 
     def get_urls(self):

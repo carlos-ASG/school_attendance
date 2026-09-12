@@ -1,0 +1,20 @@
+from django.urls import path
+
+from . import views
+
+app_name = 'teachers'
+
+urlpatterns = [
+    path('', views.DashboardView.as_view(), name='dashboard'),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('courses/<int:pk>/', views.CourseDetailView.as_view(), name='course_detail'),
+    path('sessions/<int:pk>/', views.SessionDetailView.as_view(), name='session_detail'),
+    path('sessions/<int:pk>/edit/', views.SessionUpdateView.as_view(), name='session_edit'),
+    path('sessions/<int:pk>/delete/', views.SessionDeleteView.as_view(), name='session_delete'),
+    path(
+        'records/<int:pk>/toggle-status/',
+        views.RecordToggleStatusView.as_view(),
+        name='record_toggle_status',
+    ),
+]

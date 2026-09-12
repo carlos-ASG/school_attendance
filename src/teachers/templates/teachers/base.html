@@ -1,20 +1,20 @@
-{% load static %}
+{% load static django_htmx %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Teacher Panel{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'school/css/panel.css' %}">
-    <script src="{% static 'school/js/htmx.min.js' %}" defer></script>
+    <link rel="stylesheet" href="{% static 'teachers/css/panel.css' %}">
+    {% htmx_script %}
 </head>
-<body>
+<body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
     <nav>
-        <a href="{% url 'school:dashboard' %}"><strong>Teacher Panel</strong></a>
+        <a href="{% url 'teachers:dashboard' %}"><strong>Teacher Panel</strong></a>
         {% if request.user.is_authenticated %}
             <span class="spacer"></span>
             <span>{{ teacher_name|default:request.user.username }}</span>
-            <form method="post" action="{% url 'school:logout' %}" hx-boost="false">
+            <form method="post" action="{% url 'teachers:logout' %}" hx-boost="false">
                 {% csrf_token %}
                 <button type="submit">Log out</button>
             </form>

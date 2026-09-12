@@ -1,0 +1,31 @@
+<ul class="messages">
+    {% if messages %}
+        {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    {% endif %}
+</ul>
+
+<div class="card">
+    <h2>Create Session</h2>
+    <form method="post"
+          hx-post="{% url 'teachers:course_detail' course.pk %}"
+          hx-target="#session-list"
+          hx-swap="innerHTML">
+        {% csrf_token %}
+        {% if form and form.non_field_errors %}
+            <ul class="errorlist">{{ form.non_field_errors }}</ul>
+        {% endif %}
+        {{ form.date.label_tag }}
+        {{ form.date }}
+        {% if form.date.errors %}
+            <ul class="errorlist">{{ form.date.errors }}</ul>
+        {% endif %}
+        <button type="submit">Create</button>
+    </form>
+</div>
+
+<h2>Sessions</h2>
+<div id="session-list">
+    {% include "teachers/partials/session_list.html" %}
+</div>

@@ -74,20 +74,20 @@ class BarChartComponent(BaseComponent):
         end = kwargs['end']
         records = _records_in_range(start, end)
 
-        classroom_rows = (
-            records.values('session__classroom__subject__name')
+        course_rows = (
+            records.values('session__course__subject__name')
             .annotate(count=Count('id'))
             .order_by('-count')
         )
         bar_data = {
             'labels': [
-                row['session__classroom__subject__name'] or '-'
-                for row in classroom_rows
+                row['session__course__subject__name'] or '-'
+                for row in course_rows
             ],
             'datasets': [
                 {
                     'label': 'Registros',
-                    'data': [row['count'] for row in classroom_rows],
+                    'data': [row['count'] for row in course_rows],
                     'backgroundColor': 'var(--color-primary-600)',
                     'displayYAxis': True,
                     'maxTicksXLimit': 20,

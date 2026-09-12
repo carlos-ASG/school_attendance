@@ -1,15 +1,18 @@
-{% extends "school/base.html" %}
+{% extends "teachers/base.html" %}
 
-{% block title %}My Classrooms — Teacher Panel{% endblock %}
+{% block title %}My Courses — Teacher Panel{% endblock %}
 
 {% block content %}
-    <h1>My Classrooms</h1>
-    {% for classroom in classrooms %}
+    <h1>My Courses</h1>
+    {% for course in courses %}
         <div class="card">
             <h2>
-                <a href="{% url 'school:classroom_detail' classroom.pk %}">{{ classroom.subject }}</a>
+                <a href="{% url 'teachers:course_detail' course.pk %}">{{ course.subject }}</a>
             </h2>
-            <p>{{ classroom.student_group }} — {{ classroom.student_count }} student(s)</p>
+            <p>{{ course.student_group }} — {{ course.student_count }} student(s)</p>
+            {% if course.classroom %}
+                <p><strong>Classroom:</strong> {{ course.classroom }}</p>
+            {% endif %}
             <table>
                 <thead>
                     <tr>
@@ -18,7 +21,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for slot in classroom.schedule_slots.all %}
+                    {% for slot in course.schedule_slots.all %}
                         <tr>
                             <td>{{ slot.get_weekday_display }}</td>
                             <td>{{ slot.start_time }}–{{ slot.end_time }}</td>
@@ -28,6 +31,6 @@
             </table>
         </div>
     {% empty %}
-        <p>No classrooms assigned to you yet.</p>
+        <p>No courses assigned to you yet.</p>
     {% endfor %}
 {% endblock %}

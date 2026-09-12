@@ -1,0 +1,74 @@
+## ADDED Requirements
+
+### Requirement: Session update and deletion from the panel
+The panel SHALL allow the Teacher to edit an Attendance Session's date and to delete an Attendance Session. Edit and delete requests SHALL be submitted with HTMX and the session list SHALL update without a full page reload.
+
+#### Scenario: Teacher edits a session date via HTMX
+- **WHEN** the Teacher changes the date of an existing session and submits the edit form
+- **THEN** the session is updated, the new date respects the one-session-per-course-per-date rule, and the session list updates in place
+
+#### Scenario: Teacher deletes a session via HTMX
+- **WHEN** the Teacher confirms deletion of a session
+- **THEN** the session and its records are removed and the session list updates in place
+
+### Requirement: Attendance notes from the panel
+The panel SHALL provide a notes field on each Attendance Record so the Teacher can record a short reason or comment for a student's attendance.
+
+#### Scenario: Teacher adds a note to a record
+- **WHEN** the Teacher enters a note for a student's record and saves
+- **THEN** the note is stored on that Attendance Record
+
+### Requirement: Cyclic attendance status button
+The panel SHALL render each student's attendance status as a single button instead of radio buttons. Clicking the button SHALL advance the record's status to the next value in the cycle PRESENT → ABSENT → LATE → EXCUSED and back to PRESENT, persisting the change immediately without a full page reload.
+
+#### Scenario: Teacher cycles a student's status
+- **WHEN** the course Teacher clicks the status button for a student
+- **THEN** the record's status advances to the next value in the cycle
+- **AND** the updated status is saved on the server immediately
+- **AND** only the status button is re-rendered via HTMX
+
+#### Scenario: Another teacher's session record
+- **WHEN** a Teacher who is not the Course's Teacher attempts to toggle a record's status
+- **THEN** the system denies the action and the status is unchanged
+
+## MODIFIED Requirements
+
+### Requirement: Teacher course list
+The panel dashboard SHALL list only the Courses of the logged-in Teacher, showing each Course's Subject, Student Group, student count, schedule slots, and physical classroom.
+
+#### Scenario: Teacher sees only own courses
+- **WHEN** a Teacher opens the dashboard
+- **THEN** only Courses where that Teacher is assigned are listed
+
+#### Scenario: Teacher opens a course they do not teach
+- **WHEN** a Teacher requests the panel page of another teacher's Course
+- **THEN** the system denies access
+
+### Requirement: Course detail view
+The panel SHALL provide a detail page per Course showing the Subject, the physical classroom, the Student Group's members, the schedule slots, and the list of that Course's attendance sessions (most recent first), with a way to create a new session.
+
+#### Scenario: Teacher opens a course
+- **WHEN** the Teacher opens one of their Courses
+- **THEN** the page shows subject, physical classroom, schedule, student members, and the course's sessions
+
+### Requirement: Session creation from the panel
+The panel SHALL allow the Teacher to create an attendance session for one of their Courses by choosing a date. The creation request SHALL be submitted with HTMX and the session list SHALL update without a full page reload.
+
+#### Scenario: Teacher creates a session via HTMX
+- **WHEN** the Teacher picks a date and submits the create-session form on a course page
+- **THEN** a session is created for that date, per-student records are generated, and the session list updates in place without a full page reload
+
+#### Scenario: Duplicate session date handled
+- **WHEN** the Teacher submits a create-session form for a date that already has a session for that Course
+- **THEN** the form shows a validation error and no duplicate session is created
+
+### Requirement: Attendance recording from the panel
+The panel SHALL provide a session page where the Teacher can set each student's status (PRESENT, ABSENT, LATE, EXCUSED), add an optional note, and save. Saving SHALL be submitted with HTMX and update the student list in place with a confirmation, without a full page reload.
+
+#### Scenario: Teacher records attendance via HTMX
+- **WHEN** the Teacher changes statuses or notes on the session page and saves
+- **THEN** all records are updated and the student list re-renders in place with a success confirmation
+
+#### Scenario: All group students listed with statuses
+- **WHEN** the Teacher opens a session page
+- **THEN** every student of the course's group is listed with their current status and note field

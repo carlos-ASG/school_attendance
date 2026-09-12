@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_htmx',
     'school',
+    'teachers',
 ]
 
 MIDDLEWARE = [
@@ -54,6 +56,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_htmx.middleware.HtmxMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -111,9 +114,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'es'
 
-LOGIN_URL = '/panel/login/'
-LOGIN_REDIRECT_URL = '/panel/'
-LOGOUT_REDIRECT_URL = '/panel/login/'
+LOGIN_URL = '/teacher/login/'
+LOGIN_REDIRECT_URL = '/teacher/'
+LOGOUT_REDIRECT_URL = '/teacher/login/'
 
 TIME_ZONE = 'UTC'
 
@@ -126,6 +129,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Test discovery for apps living under src/ (tests.py inside each app package)
+
+TEST_RUNNER = 'config.test_runner.SrcLayoutDiscoverRunner'
 
 
 # Django Unfold admin theme
@@ -169,8 +176,8 @@ UNFOLD = {
                         'link': '/admin/school/subject/',
                     },
                     {
-                        'title': 'Aulas',
-                        'link': '/admin/school/classroom/',
+                        'title': 'Cursos',
+                        'link': '/admin/school/course/',
                     },
                 ],
             },

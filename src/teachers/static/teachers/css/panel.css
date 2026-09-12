@@ -95,3 +95,53 @@ form button,
     list-style: none;
     padding: 0;
 }
+
+.status-btn {
+    min-width: 6.5rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.15s ease;
+}
+
+.status-present {
+    background-color: #16a34a;
+    color: #fff;
+    border-color: #15803d;
+}
+
+.status-absent {
+    background-color: #dc2626;
+    color: #fff;
+    border-color: #b91c1c;
+}
+
+.status-late {
+    background-color: #f59e0b;
+    color: #fff;
+    border-color: #d97706;
+}
+
+.status-excused {
+    background-color: #2563eb;
+    color: #fff;
+    border-color: #1d4ed8;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.actions button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}

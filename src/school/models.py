@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
@@ -68,27 +69,31 @@ class StudentGroup(models.Model):
         return self.name
 
 
-class Classroom(models.Model):
+class Course(models.Model):
     student_group = models.ForeignKey(
-        StudentGroup, on_delete=models.PROTECT, related_name='classrooms', verbose_name='Grupo de estudiantes'
+        StudentGroup, on_delete=models.PROTECT, related_name='courses', verbose_name='Grupo de estudiantes'
     )
     teacher = models.ForeignKey(
-        Teacher, on_delete=models.PROTECT, related_name='classrooms', verbose_name='Profesor'
+        Teacher, on_delete=models.PROTECT, related_name='courses', verbose_name='Profesor'
     )
     subject = models.ForeignKey(
-        Subject, on_delete=models.PROTECT, related_name='classrooms', verbose_name='Materia'
+        Subject, on_delete=models.PROTECT, related_name='courses', verbose_name='Materia'
+    )
+    classroom = models.CharField('Aula', max_length=50, blank=True, default='')
+    updated_at = models.DateTimeField(
+        'Última actualización', auto_now=True, null=True, blank=True
     )
 
     class Meta:
         constraints = [  # noqa: RUF012
             models.UniqueConstraint(
                 fields=('teacher', 'subject', 'student_group'),
-                name='unique_classroom_teacher_subject_group',
+                name='unique_course_teacher_subject_group',
             )
         ]
         ordering = ('subject__name',)
-        verbose_name = 'Aula'
-        verbose_name_plural = 'Aulas'
+        verbose_name = 'Curso'
+        verbose_name_plural = 'Cursos'
 
     def __str__(self):
         return f'{self.subject} — {self.teacher} ({self.student_group})'
@@ -104,15 +109,15 @@ class ClassSchedule(models.Model):
         SATURDAY = 5, 'Sábado'
         SUNDAY = 6, 'Domingo'
 
-    classroom = models.ForeignKey(
-        Classroom, on_delete=models.CASCADE, related_name='schedule_slots', verbose_name='Aula'
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name='schedule_slots', verbose_name='Curso'
     )
     weekday = models.IntegerField('Día de la semana', choices=Weekday.choices)
     start_time = models.TimeField('Hora de inicio')
     end_time = models.TimeField('Hora de fin')
 
     class Meta:
-        ordering = ('classroom', 'weekday', 'start_time')
+        ordering = ('course', 'weekday', 'start_time')
         constraints = [  # noqa: RUF012
             models.CheckConstraint(
                 condition=Q(start_time__lt=models.F('end_time')),
@@ -123,30 +128,32 @@ class ClassSchedule(models.Model):
         verbose_name_plural = 'Horarios de clase'
 
     def __str__(self):
-        return f'{self.classroom}: {self.get_weekday_display()} {self.start_time}-{self.end_time}'
+        return f'{self.course}: {self.get_weekday_display()} {self.start_time}-{self.end_time}'
 
 
 class AttendanceSession(models.Model):
-    classroom = models.ForeignKey(
-        Classroom, on_delete=models.CASCADE, related_name='sessions', verbose_name='Aula'
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name='sessions', verbose_name='Curso'
     )
     date = models.DateField('Fecha')
     created_by = models.ForeignKey(
         Teacher, on_delete=models.PROTECT, related_name='created_sessions', verbose_name='Creado por'
     )
     created_at = models.DateTimeField('Fecha de creación', auto_now_add=True)
-    notes = models.TextField('Notas', blank=True)
+    updated_at = models.DateTimeField(
+        'Última actualización', auto_now=True, null=True, blank=True
+    )
 
     class Meta:
         ordering = ('-date', '-created_at')
         constraints = [
-            models.UniqueConstraint(fields=('classroom', 'date'), name='unique_session_classroom_date')
+            models.UniqueConstraint(fields=('course', 'date'), name='unique_session_course_date')
         ]
         verbose_name = 'Sesión de asistencia'
         verbose_name_plural = 'Sesiones de asistencia'
 
     def __str__(self):
-        return f'{self.classroom} — {self.date}'
+        return f'{self.course} — {self.date}'
 
 
 class AttendanceRecord(models.Model):
@@ -165,6 +172,10 @@ class AttendanceRecord(models.Model):
     status = models.CharField(
         'Estado', max_length=10, choices=Status.choices, default=Status.PRESENT
     )
+    notes = models.TextField('Notas', blank=True, default='')
+    updated_at = models.DateTimeField(
+        'Última actualización', auto_now=True, null=True, blank=True
+    )
 
     class Meta:
         ordering = ('student__paternal_surname', 'student__maternal_surname', 'student__first_name')
@@ -177,14 +188,23 @@ class AttendanceRecord(models.Model):
     def __str__(self):
         return f'{self.student}: {self.status} ({self.session})'
 
+    def clean(self):
+        super().clean()
+        if self.session_id and self.student_id:
+            group = self.session.course.student_group
+            if not group.students.filter(pk=self.student_id).exists():
+                raise ValidationError(
+                    {'student': 'El estudiante no pertenece al grupo del curso de la sesión.'}
+                )
+
 
 def create_attendance_records(session: AttendanceSession) -> int:
-    """Create one AttendanceRecord per student in the session's classroom group.
+    """Create one AttendanceRecord per student in the session's course group.
 
     Skips students that already have a record in the session. Returns the number
     of records created.
     """
-    students = session.classroom.student_group.students.all()
+    students = session.course.student_group.students.all()
     existing = set(
         AttendanceRecord.objects.filter(session=session, student__in=students).values_list(
             'student_id', flat=True

@@ -1,0 +1,8 @@
+<form method="post"
+      hx-post="{% url 'teachers:session_detail' session.pk %}"
+      hx-target="#attendance-panel" hx-swap="innerHTML">
+    {% csrf_token %}
+    {{ formset.management_form }}
+    {% include "teachers/partials/attendance_table.html" %}
+    <button type="submit">Guardar notas</button>
+</form>
