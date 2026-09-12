@@ -113,6 +113,56 @@ class TeacherSessionViewTests(TestCase):
             ).exists()
         )
 
+    # Create today (CourseDetailView POST create_today)
+
+    def test_create_today_session_redirects_to_detail(self):
+        url = reverse('teachers:course_detail', args=[self.course.pk])
+        response = self.client.post(url, {'create_today': '1'})
+        session = AttendanceSession.objects.get(
+            course=self.course, date=days_from_today(0)
+        )
+        self.assertRedirects(
+            response, reverse('teachers:session_detail', args=[session.pk])
+        )
+
+    def test_create_today_session_generates_records(self):
+        url = reverse('teachers:course_detail', args=[self.course.pk])
+        self.client.post(url, {'create_today': '1'})
+        session = AttendanceSession.objects.get(
+            course=self.course, date=days_from_today(0)
+        )
+        self.assertEqual(session.records.count(), 1)
+
+    def test_create_today_existing_session_no_duplicate(self):
+        session = self.make_session(days_from_today(0))
+        url = reverse('teachers:course_detail', args=[self.course.pk])
+        response = self.client.post(url, {'create_today': '1'})
+        self.assertEqual(
+            AttendanceSession.objects.filter(
+                course=self.course, date=days_from_today(0)
+            ).count(),
+            1,
+        )
+        self.assertRedirects(
+            response, reverse('teachers:session_detail', args=[session.pk])
+        )
+
+    def test_today_button_rendered_without_session(self):
+        url = reverse('teachers:course_detail', args=[self.course.pk])
+        response = self.client.get(url)
+        self.assertContains(response, 'Crear sesión de hoy')
+        self.assertContains(response, 'name="create_today"')
+
+    def test_today_session_link_rendered(self):
+        session = self.make_session(days_from_today(0))
+        url = reverse('teachers:course_detail', args=[self.course.pk])
+        response = self.client.get(url)
+        self.assertContains(response, 'Crear sesión de hoy')
+        self.assertContains(
+            response, reverse('teachers:session_detail', args=[session.pk])
+        )
+        self.assertNotContains(response, 'name="create_today"')
+
     # Session update (SessionUpdateView)
 
     def test_edit_session(self):

@@ -6,6 +6,7 @@ from django.db.models import Count
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView, ListView
 from django_htmx.http import retarget
@@ -103,6 +104,9 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
         context['sessions'] = self.object.sessions.all()[:20]
         context['form'] = self.session_form
         context['attendance'] = self.get_attendance_summary()
+        context['today_session'] = self.object.sessions.filter(
+            date=timezone.now().date()
+        ).first()
         return context
 
     def get_attendance_summary(self):
@@ -150,6 +154,8 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if 'create_today' in request.POST:
+            return self._create_today_session(request)
         form = SessionForm(request.POST, course=self.object)
         if form.is_valid():
             session = AttendanceSession.objects.create(
@@ -165,6 +171,21 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
             return self._render_panel(request)
         context = self.get_context_data(object=self.object)
         return render(request, self.template_name, context)
+
+    def _create_today_session(self, request):
+        today = timezone.now().date()
+        session = self.object.sessions.filter(date=today).first()
+        if session is None:
+            session = AttendanceSession.objects.create(
+                course=self.object,
+                date=today,
+                created_by=self.teacher,
+            )
+            create_attendance_records(session)
+            messages.success(request, 'Session created.')
+        return HttpResponseRedirect(
+            reverse('teachers:session_detail', args=[session.pk])
+        )
 
     def _render_panel(self, request):
         context = self.get_context_data(object=self.object)

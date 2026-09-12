@@ -8,6 +8,16 @@
 
 <div class="card">
     <h2>Create Session</h2>
+    {% if today_session %}
+        <p>
+            <a href="{% url 'teachers:session_detail' today_session.pk %}">Sesión de hoy</a>
+        </p>
+    {% else %}
+        <form method="post" action="{% url 'teachers:course_detail' course.pk %}">
+            {% csrf_token %}
+            <button type="submit" name="create_today" value="1">Crear sesión de hoy</button>
+        </form>
+    {% endif %}
     <form method="post"
           hx-post="{% url 'teachers:course_detail' course.pk %}"
           hx-target="#session-list"

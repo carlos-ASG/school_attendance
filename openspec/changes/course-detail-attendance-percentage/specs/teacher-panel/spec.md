@@ -31,3 +31,14 @@ The system SHALL compute each student's attendance percentage as the number of t
 #### Scenario: All students in group are listed
 - **WHEN** the Teacher opens a course with students in its group
 - **THEN** every student in the group appears in the table, even if they have no attendance records
+
+### Requirement: Create today session shortcut
+The course detail panel SHALL provide a one-click control labeled "Crear sesión de hoy" to create an attendance session for the current date. When a session for the current date already exists, the control SHALL navigate to that session's detail page instead of creating a duplicate.
+
+#### Scenario: Teacher starts today's session
+- **WHEN** the Teacher clicks the "Crear sesión de hoy" control and no session exists for today
+- **THEN** a session for today is created with attendance records for the group and the Teacher is taken to its detail page
+
+#### Scenario: Today's session already exists
+- **WHEN** the Teacher clicks the control and a session for today already exists
+- **THEN** no duplicate session is created and the Teacher is taken to the existing session's detail page

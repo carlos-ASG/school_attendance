@@ -18,4 +18,10 @@
 
 - [x] 4.1 Run `uv run manage.py check` and confirm no errors.
 - [x] 4.2 Run the test suite (or relevant tests) and confirm all pass.
-- [ ] 4.3 Manually verify the course detail page renders the attendance table correctly and the session form rejects future dates.
+- [x] 4.3 Manually verify the course detail page renders the attendance table correctly and the session form rejects future dates.
+
+## 5. Create today button
+
+- [x] 5.1 Add `create_today` handling to `CourseDetailView.post()`: create a session for today (or reuse the existing one) and redirect to its detail view; expose `today_session` in the context.
+- [x] 5.2 Add the "Crear sesión de hoy" button/link to `session_panel.html`, keeping the date picker form alongside.
+- [x] 5.3 Add tests for one-click today-session creation, duplicate handling, and template rendering.
