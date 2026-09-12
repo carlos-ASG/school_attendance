@@ -27,6 +27,12 @@ STATUS_CYCLE = {
     AttendanceRecord.Status.EXCUSED: AttendanceRecord.Status.PRESENT,
 }
 
+ATTENDED_STATUSES = (
+    AttendanceRecord.Status.PRESENT,
+    AttendanceRecord.Status.LATE,
+    AttendanceRecord.Status.EXCUSED,
+)
+
 
 def get_teacher(request):
     """Return the Teacher linked to the request user, or None."""
@@ -96,7 +102,47 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context['sessions'] = self.object.sessions.all()[:20]
         context['form'] = self.session_form
+        context['attendance'] = self.get_attendance_summary()
         return context
+
+    def get_attendance_summary(self):
+        """Return a lookup dict keyed by student pk with attendance summary.
+
+        Counts PRESENT, LATE and EXCUSED records as attended, using the total
+        number of sessions for the course as the denominator. Issues at most
+        two queries regardless of the number of students.
+        """
+        students = self.object.student_group.students.all()
+        total = self.object.sessions.count()
+        if total == 0:
+            return {
+                student.pk: {
+                    'student': student,
+                    'attended': 0,
+                    'total': 0,
+                    'percentage': '0',
+                }
+                for student in students
+            }
+        attended_rows = (
+            AttendanceRecord.objects.filter(
+                session__course=self.object,
+                status__in=ATTENDED_STATUSES,
+            )
+            .values('student_id')
+            .annotate(attended=Count('pk'))
+        )
+        attended_by_student = {row['student_id']: row['attended'] for row in attended_rows}
+        summary = {}
+        for student in students:
+            attended = attended_by_student.get(student.pk, 0)
+            summary[student.pk] = {
+                'student': student,
+                'attended': attended,
+                'total': total,
+                'percentage': f'{attended / total * 100:.1f}',
+            }
+        return summary
 
     def dispatch(self, request, *args, **kwargs):
         self.session_form = None

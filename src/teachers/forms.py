@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 
 from school.models import AttendanceRecord, AttendanceSession
 
@@ -19,6 +20,8 @@ class SessionForm(forms.Form):
 
     def clean_date(self):
         date = self.cleaned_data['date']
+        if date > timezone.now().date():
+            raise forms.ValidationError('La fecha no puede ser posterior a hoy.')
         sessions = AttendanceSession.objects.filter(course=self.course, date=date)
         if self.exclude_pk is not None:
             sessions = sessions.exclude(pk=self.exclude_pk)

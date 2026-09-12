@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 
 class Student(models.Model):
@@ -154,6 +155,11 @@ class AttendanceSession(models.Model):
 
     def __str__(self):
         return f'{self.course} — {self.date}'
+
+    def clean(self):
+        super().clean()
+        if self.date and self.date > timezone.now().date():
+            raise ValidationError({'date': 'La fecha no puede ser posterior a hoy.'})
 
 
 class AttendanceRecord(models.Model):

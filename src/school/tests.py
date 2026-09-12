@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.test import RequestFactory, TestCase
+from django.utils import timezone
 
 from .admin import AttendanceRecordInline
 from .models import (
@@ -50,6 +53,38 @@ class AttendanceRecordCleanTests(TestCase):
         record = AttendanceRecord(session=self.session, student=self.outsider)
         with self.assertRaises(ValidationError):
             record.full_clean()
+
+
+class AttendanceSessionCleanTests(TestCase):
+    def setUp(self):
+        _, _, _, self.teacher, self.course = make_course_data('Grupo Sesiones')
+
+    def test_future_date_raises_validation_error(self):
+        session = AttendanceSession(
+            course=self.course,
+            date=timezone.now().date() + timedelta(days=1),
+            created_by=self.teacher,
+        )
+        with self.assertRaises(ValidationError):
+            session.full_clean()
+
+    def test_today_is_allowed(self):
+        session = AttendanceSession(
+            course=self.course, date=timezone.now().date(), created_by=self.teacher
+        )
+        session.full_clean()
+        session.save()
+        self.assertTrue(AttendanceSession.objects.filter(pk=session.pk).exists())
+
+    def test_past_date_is_allowed(self):
+        session = AttendanceSession(
+            course=self.course,
+            date=timezone.now().date() - timedelta(days=1),
+            created_by=self.teacher,
+        )
+        session.full_clean()
+        session.save()
+        self.assertTrue(AttendanceSession.objects.filter(pk=session.pk).exists())
 
 
 class AttendanceRecordInlineTests(TestCase):
