@@ -4,7 +4,7 @@
       {% if edit_mode %}hx-confirm="¿Guardar los cambios en esta sesión pasada?"{% endif %}>
     {% csrf_token %}
     {{ formset.management_form }}
-    {% include "teachers/partials/attendance_table.html" %}
+    {% include "teachers/session_detail/attendance_table_partial.html" %}
     <button type="submit">Guardar notas</button>
     {% if edit_mode %}
         <a href="{% url 'teachers:session_detail' session.pk %}"><button type="button">Salir de edición</button></a>

@@ -12,7 +12,7 @@
                 <td>{{ form.instance.student }}</td>
                 <td>
                     {{ form.id }}
-                    {% include "teachers/partials/record_status_button.html" with record=form.instance %}
+                    {% include "teachers/session_detail/record_status_button_partial.html" with record=form.instance %}
                 </td>
                 <td>
                     {{ form.notes }}

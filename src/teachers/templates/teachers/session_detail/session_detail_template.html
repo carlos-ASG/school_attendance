@@ -5,7 +5,7 @@
 {% block content %}
     <p><a href="{% url 'teachers:course_session_history' session.course.pk %}">&larr; Volver al historial de sesiones</a></p>
     <div id="session-header">
-        {% include "teachers/partials/session_header.html" %}
+        {% include "teachers/session_detail/session_header_partial.html" %}
     </div>
 
     <div id="session-controls"
@@ -29,9 +29,9 @@
 
     <div id="attendance-panel">
         {% if editable %}
-            {% include "teachers/partials/attendance_panel.html" %}
+            {% include "teachers/session_detail/attendance_panel_partial.html" %}
         {% else %}
-            {% include "teachers/partials/attendance_readonly.html" %}
+            {% include "teachers/session_detail/attendance_readonly_partial.html" %}
         {% endif %}
     </div>
 {% endblock %}
