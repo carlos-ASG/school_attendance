@@ -1,0 +1,22 @@
+<table>
+    <thead>
+        <tr>
+            <th>Estudiante</th>
+            <th>Estado</th>
+            <th>Notas</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in session.records.all %}
+            <tr>
+                <td>{{ record.student }}</td>
+                <td>{{ record.get_status_display }}</td>
+                <td>{{ record.notes|default:"—" }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="3">No hay registros de asistencia.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

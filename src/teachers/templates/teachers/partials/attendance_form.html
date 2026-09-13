@@ -1,8 +1,12 @@
 <form method="post"
       hx-post="{% url 'teachers:session_detail' session.pk %}"
-      hx-target="#attendance-panel" hx-swap="innerHTML">
+      hx-target="#attendance-panel" hx-swap="innerHTML"
+      {% if edit_mode %}hx-confirm="¿Guardar los cambios en esta sesión pasada?"{% endif %}>
     {% csrf_token %}
     {{ formset.management_form }}
     {% include "teachers/partials/attendance_table.html" %}
     <button type="submit">Guardar notas</button>
+    {% if edit_mode %}
+        <a href="{% url 'teachers:session_detail' session.pk %}"><button type="button">Salir de edición</button></a>
+    {% endif %}
 </form>

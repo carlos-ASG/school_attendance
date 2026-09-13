@@ -1,13 +1,5 @@
-<ul class="messages">
-    {% if messages %}
-        {% for message in messages %}
-            <li class="{{ message.tags }}">{{ message }}</li>
-        {% endfor %}
-    {% endif %}
-</ul>
-
 <div class="card">
-    <h2>Create Session</h2>
+    <h2>Crear sesión</h2>
     {% if today_session %}
         <p>
             <a href="{% url 'teachers:session_detail' today_session.pk %}">Sesión de hoy</a>
@@ -18,10 +10,7 @@
             <button type="submit" name="create_today" value="1">Crear sesión de hoy</button>
         </form>
     {% endif %}
-    <form method="post"
-          hx-post="{% url 'teachers:course_detail' course.pk %}"
-          hx-target="#session-list"
-          hx-swap="innerHTML">
+    <form method="post" action="{% url 'teachers:course_detail' course.pk %}">
         {% csrf_token %}
         {% if form and form.non_field_errors %}
             <ul class="errorlist">{{ form.non_field_errors }}</ul>
@@ -31,11 +20,6 @@
         {% if form.date.errors %}
             <ul class="errorlist">{{ form.date.errors }}</ul>
         {% endif %}
-        <button type="submit">Create</button>
+        <button type="submit">Crear sesión en otra fecha</button>
     </form>
-</div>
-
-<h2>Sessions</h2>
-<div id="session-list">
-    {% include "teachers/partials/session_list.html" %}
 </div>

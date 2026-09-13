@@ -1,0 +1,12 @@
+{% extends "teachers/base.html" %}
+
+{% block title %}{{ course.subject }} — Historial de sesiones — Teacher Panel{% endblock %}
+
+{% block content %}
+    <p><a href="{% url 'teachers:course_detail' course.pk %}">&larr; Volver al curso</a></p>
+    <h1>{{ course.subject }} — Historial de sesiones</h1>
+
+    <div id="session-list">
+        {% include "teachers/partials/session_list.html" %}
+    </div>
+{% endblock %}

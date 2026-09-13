@@ -1,47 +1,4 @@
-# Teacher Panel Specification
-
-## Purpose
-
-Define the teacher-facing web panel: authentication, role-based routing, course views, session CRUD, and HTMX-driven attendance recording with a cyclic status button, while admins continue to use the Django admin site.
-
-## Requirements
-
-### Requirement: Teacher panel authentication
-The teacher panel SHALL use Django's built-in authentication. Only authenticated users linked to a Teacher SHALL access the panel; unauthenticated or unauthorized users SHALL be redirected to the panel login page.
-
-#### Scenario: Anonymous user tries to open the panel
-- **WHEN** an unauthenticated user opens any panel page
-- **THEN** they are redirected to the panel login page
-
-#### Scenario: Non-teacher authenticated user tries to open the panel
-- **WHEN** an authenticated user with no linked Teacher opens the panel
-- **THEN** they are denied access and informed they are not a teacher
-
-#### Scenario: Teacher logs in
-- **WHEN** a user linked to a Teacher logs in with valid credentials
-- **THEN** they reach the panel dashboard listing their courses
-
-### Requirement: Post-login routing by role
-After login, the system SHALL route users by role: users who are staff SHALL be directed to the Django admin site, and teacher users SHALL be directed to the teacher panel.
-
-#### Scenario: Staff user logs in
-- **WHEN** a staff user logs in
-- **THEN** they are redirected to the Django admin site
-
-#### Scenario: Teacher user logs in
-- **WHEN** a teacher (non-staff) user logs in
-- **THEN** they are redirected to the teacher panel dashboard
-
-### Requirement: Teacher course list
-The panel dashboard SHALL list only the Courses of the logged-in Teacher, showing each Course's Subject, Student Group, student count, schedule slots, and physical classroom.
-
-#### Scenario: Teacher sees only own courses
-- **WHEN** a Teacher opens the dashboard
-- **THEN** only Courses where that Teacher is assigned are listed
-
-#### Scenario: Teacher opens a course they do not teach
-- **WHEN** a Teacher requests the panel page of another teacher's Course
-- **THEN** the system denies access
+## ADDED Requirements
 
 ### Requirement: Course sessions page
 The panel SHALL provide a dedicated page per Course, reachable from the course detail page, that lists the Course's Attendance Sessions most recent first, links each session to its session detail page, and hosts the create-session form. The page SHALL be restricted to the Course's Teacher, SHALL provide a way to return to the course detail page, and the session list SHALL NOT include edit or delete controls.
@@ -57,6 +14,8 @@ The panel SHALL provide a dedicated page per Course, reachable from the course d
 #### Scenario: Sessions page links back to the course
 - **WHEN** the Teacher is on the sessions page
 - **THEN** the page provides a link back to the course detail page
+
+## MODIFIED Requirements
 
 ### Requirement: Course detail view
 The panel SHALL provide a detail page per Course showing the Subject, the physical classroom, the schedule slots, the Student Group's members in a table with each student's attendance summary, and a shortcut to the Course's session for the current date ("Crear sesión de hoy" when none exists, "Sesión de hoy" when it exists). The course detail page SHALL provide a button to open the course sessions page and SHALL NOT embed the session list or the create-session form.
@@ -103,26 +62,6 @@ The panel SHALL allow the Teacher to edit an Attendance Session's date and to de
 - **WHEN** the Teacher confirms the deletion of a session from the session detail page
 - **THEN** the session and its records are removed and the Teacher is redirected to the course sessions page
 
-### Requirement: Cyclic attendance status button
-The panel SHALL render each student's attendance status as a single button instead of radio buttons. Clicking the button SHALL advance the record's status to the next value in the cycle PRESENT → ABSENT → LATE → EXCUSED and back to PRESENT, persisting the change immediately without a full page reload.
-
-#### Scenario: Teacher cycles a student's status
-- **WHEN** the course Teacher clicks the status button for a student
-- **THEN** the record's status advances to the next value in the cycle
-- **AND** the updated status is saved on the server immediately
-- **AND** only the status button is re-rendered via HTMX
-
-#### Scenario: Another teacher's session record
-- **WHEN** a Teacher who is not the Course's Teacher attempts to toggle a record's status
-- **THEN** the system denies the action and the status is unchanged
-
-### Requirement: Attendance notes from the panel
-The panel SHALL provide a notes field on each Attendance Record so the Teacher can record a short reason or comment for a student's attendance.
-
-#### Scenario: Teacher adds a note to a record
-- **WHEN** the Teacher enters a note for a student's record and saves
-- **THEN** the note is stored on that Attendance Record
-
 ### Requirement: Attendance recording from the panel
 The panel SHALL provide a session page where the Teacher can set each student's status (PRESENT, ABSENT, LATE, EXCUSED), add an optional note, and save. The session page SHALL render the attendance editing interface by default only when the session's date is the current date; for sessions dated in the past it SHALL render the attendance read-only and SHALL offer an explicit "Editar" control that enables the editing interface. Saving SHALL be submitted with HTMX and update the student list in place with a confirmation, without a full page reload.
 
@@ -146,21 +85,3 @@ The panel SHALL provide a session page where the Teacher can set each student's 
 #### Scenario: All group students listed with statuses
 - **WHEN** the Teacher opens a session page, editable or read-only
 - **THEN** every student of the course's group is listed with their current status and note
-
-### Requirement: Teacher panel text is in Spanish
-The teacher panel SHALL display all user-visible text in Spanish, including page titles, headings, table headers, form labels, buttons, status labels, and confirmation or error messages. Code identifiers, model field names, choice values, and URL paths SHALL remain in English.
-
-#### Scenario: Panel renders in Spanish
-- **WHEN** a Teacher opens any panel page
-- **THEN** every visible text element is shown in Spanish
-
-#### Scenario: Attendance statuses shown in Spanish
-- **WHEN** the Teacher selects a student's attendance status
-- **THEN** the status options are displayed in Spanish (e.g. Presente, Ausente, Tarde, Justificado)
-
-### Requirement: Admins use Django admin
-Admin users SHALL manage all entities (Students, Teachers, Subjects, Student Groups, Courses, Sessions, Records) through the Django admin site and SHALL NOT need the teacher panel.
-
-#### Scenario: Admin manages everything from admin site
-- **WHEN** an Admin uses the Django admin site
-- **THEN** all domain entities are available for management with useful listings and filters

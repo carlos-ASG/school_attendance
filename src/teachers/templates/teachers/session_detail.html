@@ -3,12 +3,35 @@
 {% block title %}{{ session.course.subject }} — {{ session.date }} — Teacher Panel{% endblock %}
 
 {% block content %}
-    <h1>{{ session.course.subject }} — {{ session.date }}</h1>
-    <p>
-        <strong>Group:</strong> {{ session.course.student_group }}<br>
-        <strong>Created by:</strong> {{ session.created_by }}
-    </p>
+    <p><a href="{% url 'teachers:course_session_history' session.course.pk %}">&larr; Volver al historial de sesiones</a></p>
+    <div id="session-header">
+        {% include "teachers/partials/session_header.html" %}
+    </div>
+
+    <div id="session-controls"
+         hx-target="this"
+         hx-swap="outerHTML">
+        {% if session.date != today %}
+            <button type="button"
+                    hx-get="{% url 'teachers:session_edit' session.pk %}"
+                    hx-target="#session-edit"
+                    hx-swap="innerHTML">
+                Cambiar fecha de la sesión
+            </button>
+        {% endif %}
+        <button type="button"
+                hx-post="{% url 'teachers:session_delete' session.pk %}"
+                hx-confirm="¿Eliminar esta sesión y todos sus registros de asistencia?">
+            Eliminar sesión
+        </button>
+        <div id="session-edit"></div>
+    </div>
+
     <div id="attendance-panel">
-        {% include "teachers/partials/attendance_panel.html" %}
+        {% if editable %}
+            {% include "teachers/partials/attendance_panel.html" %}
+        {% else %}
+            {% include "teachers/partials/attendance_readonly.html" %}
+        {% endif %}
     </div>
 {% endblock %}

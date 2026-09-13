@@ -50,4 +50,8 @@
     <div id="session-panel">
         {% include "teachers/partials/session_panel.html" %}
     </div>
+
+    <p>
+        <a href="{% url 'teachers:course_session_history' course.pk %}"><button type="button">Ver sesiones</button></a>
+    </p>
 {% endblock %}

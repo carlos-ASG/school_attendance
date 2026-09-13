@@ -101,9 +101,8 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['sessions'] = self.object.sessions.all()[:20]
-        context['form'] = self.session_form
         context['attendance'] = self.get_attendance_summary()
+        context['form'] = self.session_form
         context['today_session'] = self.object.sessions.filter(
             date=timezone.now().date()
         ).first()
@@ -165,10 +164,10 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
             )
             create_attendance_records(session)
             messages.success(request, 'Session created.')
-            form = SessionForm(course=self.object)
+            return HttpResponseRedirect(
+                reverse('teachers:session_detail', args=[session.pk])
+            )
         self.session_form = form
-        if request.htmx:
-            return self._render_panel(request)
         context = self.get_context_data(object=self.object)
         return render(request, self.template_name, context)
 
@@ -187,10 +186,27 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
             reverse('teachers:session_detail', args=[session.pk])
         )
 
-    def _render_panel(self, request):
-        context = self.get_context_data(object=self.object)
-        context['sessions'] = self.object.sessions.all()[:20]
-        return render(request, 'teachers/partials/session_panel.html', context)
+
+class CourseSessionHistoryView(TeacherRequiredMixin, ListView):
+    template_name = 'teachers/course_session_history.html'
+    context_object_name = 'sessions'
+
+    def get_course(self):
+        return get_object_or_404(
+            Course.objects.filter(teacher=self.teacher), pk=self.kwargs['pk']
+        )
+
+    def get(self, request, *args, **kwargs):
+        self.course = self.get_course()
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return self.course.sessions.all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['course'] = self.course
+        return context
 
 
 class SessionDetailView(TeacherRequiredMixin, DetailView):
@@ -204,6 +220,11 @@ class SessionDetailView(TeacherRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['editable'] = (
+            self.object.date == timezone.now().date()
+        ) or (self.request.GET.get('edit') == '1')
+        context['edit_mode'] = self.request.GET.get('edit') == '1'
+        context['today'] = timezone.now().date()
         context['formset'] = AttendanceFormSet(
             queryset=self.object.records.select_related('student')
         )
@@ -264,14 +285,6 @@ class SessionMixin(TeacherRequiredMixin):
             course__teacher=self.teacher,
         )
 
-    def render_session_list(self, request, course):
-        context = {
-            'course': course,
-            'sessions': course.sessions.all()[:20],
-            'form': SessionForm(course=course),
-        }
-        return render(request, 'teachers/partials/session_list.html', context)
-
 
 class SessionUpdateView(SessionMixin, View):
     def get(self, request, *args, **kwargs):
@@ -289,15 +302,34 @@ class SessionUpdateView(SessionMixin, View):
             session.date = form.cleaned_data['date']
             session.save(update_fields=['date', 'updated_at'])
             messages.success(request, 'Session updated.')
-            return self.render_session_list(request, session.course)
+            if request.htmx:
+                context = {
+                    'session': session,
+                    'editable': True,
+                    'today': timezone.now().date(),
+                }
+                return render(
+                    request, 'teachers/partials/session_header.html', context
+                )
+            return HttpResponseRedirect(
+                reverse('teachers:session_detail', args=[session.pk])
+            )
         context = {'session': session, 'course': session.course, 'form': form}
-        return render(request, 'teachers/partials/session_form.html', context)
+        response = render(request, 'teachers/partials/session_form.html', context)
+        if request.htmx:
+            return retarget(response, '#session-edit')
+        return response
 
 
 class SessionDeleteView(SessionMixin, View):
     def post(self, request, *args, **kwargs):
         session = self.get_session(kwargs['pk'])
-        course = session.course
         session.delete()
         messages.success(request, 'Session deleted.')
-        return self.render_session_list(request, course)
+        if request.htmx:
+            return HttpResponse(status=200, headers={
+                'HX-Redirect': reverse('teachers:course_session_history', args=[session.course_id]),
+            })
+        return HttpResponseRedirect(
+            reverse('teachers:course_session_history', args=[session.course_id])
+        )
