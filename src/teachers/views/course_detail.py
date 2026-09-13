@@ -26,7 +26,7 @@ ATTENDED_STATUSES = (
 # --- Template views (full pages) ---
 
 class CourseDetailView(TeacherRequiredMixin, DetailView):
-    template_name = 'teachers/course_detail/course_detail_template.html'
+    template_name = 'teachers/course_detail.html'
     context_object_name = 'course'
 
     def get_queryset(self):

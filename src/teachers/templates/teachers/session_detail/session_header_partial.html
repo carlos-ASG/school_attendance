@@ -1,8 +1,0 @@
-<h1>{{ session.course.subject }} — {{ session.date }}</h1>
-<p>
-    <strong>Group:</strong> {{ session.course.student_group }}<br>
-    <strong>Created by:</strong> {{ session.created_by }}
-</p>
-{% if not editable and session.date < today %}
-    <p><a href="?edit=1">Editar</a></p>
-{% endif %}

@@ -3,11 +3,10 @@ from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.views import View
 
-
 # --- Template views (full pages) ---
 
 class LoginView(auth_views.LoginView):
-    template_name = 'teachers/login/login_template.html'
+    template_name = 'teachers/login.html'
 
     def get_success_url(self):
         if self.request.user.is_staff:

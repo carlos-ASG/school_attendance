@@ -1,0 +1,147 @@
+{% extends "teachers/base.html" %}
+
+{% block title %}{{ session.course.subject }} — {{ session.date }} — Teacher Panel{% endblock %}
+
+{% block content %}
+    <p><a href="{% url 'teachers:course_session_history' session.course.pk %}">&larr; Volver al historial de sesiones</a></p>
+    <div id="session-header">
+        {% partial session_header %}
+    </div>
+
+    <div id="session-controls"
+         hx-target="this"
+         hx-swap="outerHTML">
+        {% if session.date != today %}
+            <button type="button"
+                    hx-get="{% url 'teachers:session_edit' session.pk %}"
+                    hx-target="#session-edit"
+                    hx-swap="innerHTML">
+                Cambiar fecha de la sesión
+            </button>
+        {% endif %}
+        <button type="button"
+                hx-post="{% url 'teachers:session_delete' session.pk %}"
+                hx-confirm="¿Eliminar esta sesión y todos sus registros de asistencia?">
+            Eliminar sesión
+        </button>
+        <div id="session-edit"></div>
+    </div>
+
+    <div id="attendance-panel">
+        {% if editable %}
+            {% partial attendance_panel %}
+        {% else %}
+            {% partial attendance_readonly %}
+        {% endif %}
+    </div>
+{% endblock %}
+{% partialdef session_header %}<h1>{{ session.course.subject }} — {{ session.date }}</h1>
+<p>
+    <strong>Group:</strong> {{ session.course.student_group }}<br>
+    <strong>Created by:</strong> {{ session.created_by }}
+</p>
+{% if not editable and session.date < today %}
+    <p><a href="?edit=1">Editar</a></p>
+{% endif %}
+{% endpartialdef session_header %}{% partialdef session_form %}<form method="post"
+      hx-post="{% url 'teachers:session_edit' session.pk %}"
+      hx-target="#session-header"
+      hx-swap="outerHTML"
+      class="inline-form">
+    {% csrf_token %}
+    {{ form.date }}
+    {% if form.date.errors %}
+        <ul class="errorlist">{{ form.date.errors }}</ul>
+    {% endif %}
+    <button type="submit">Guardar</button>
+</form>
+{% endpartialdef session_form %}{% partialdef attendance_panel %}<ul class="messages">
+    {% if messages %}
+        {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    {% endif %}
+</ul>
+
+<form method="post"
+      hx-post="{% url 'teachers:session_detail' session.pk %}"
+      hx-target="#attendance-panel" hx-swap="innerHTML"
+      {% if edit_mode %}hx-confirm="¿Guardar los cambios en esta sesión pasada?"{% endif %}>
+    {% csrf_token %}
+    {{ formset.management_form }}
+    <table>
+    <thead>
+        <tr>
+            <th>Estudiante</th>
+            <th>Estado</th>
+            <th>Notas</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for form in formset %}
+            <tr>
+                <td>{{ form.instance.student }}</td>
+                <td>
+                    {{ form.id }}
+                    {% with record=form.instance %}{% partial record_status_button %}{% endwith %}
+                </td>
+                <td>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <ul class="errorlist">{{ form.notes.errors }}</ul>
+                    {% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="3">No hay registros de asistencia.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+    <button type="submit">Guardar notas</button>
+    {% if edit_mode %}
+        <a href="{% url 'teachers:session_detail' session.pk %}"><button type="button">Salir de edición</button></a>
+    {% endif %}
+</form>
+
+{% endpartialdef attendance_panel %}{% partialdef attendance_readonly %}<table>
+    <thead>
+        <tr>
+            <th>Estudiante</th>
+            <th>Estado</th>
+            <th>Notas</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in session.records.all %}
+            <tr>
+                <td>{{ record.student }}</td>
+                <td>{{ record.get_status_display }}</td>
+                <td>{{ record.notes|default:"—" }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="3">No hay registros de asistencia.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endpartialdef attendance_readonly %}{% partialdef record_status_button %}<button
+    id="record-status-{{ record.pk }}"
+    type="button"
+    class="status-btn status-{{ record.status|lower }}"
+    hx-post="{% url 'teachers:record_toggle_status' record.pk %}"
+    hx-target="this"
+    hx-swap="outerHTML">
+    {{ record.get_status_display }}
+</button>
+{% if errors %}
+    <ul class="errorlist">
+        {% for field, msgs in errors.items %}
+            {% for msg in msgs %}<li>{{ msg }}</li>{% endfor %}
+        {% endfor %}
+    </ul>
+{% endif %}
+{% endpartialdef record_status_button %}

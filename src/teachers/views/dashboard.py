@@ -5,11 +5,10 @@ from school.models import Course
 
 from .mixins import TeacherRequiredMixin
 
-
 # --- Template views (full pages) ---
 
 class DashboardView(TeacherRequiredMixin, ListView):
-    template_name = 'teachers/dashboard/dashboard_template.html'
+    template_name = 'teachers/dashboard.html'
     context_object_name = 'courses'
 
     def get_queryset(self):

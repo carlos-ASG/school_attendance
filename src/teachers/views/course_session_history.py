@@ -5,11 +5,10 @@ from school.models import Course
 
 from .mixins import TeacherRequiredMixin
 
-
 # --- Template views (full pages) ---
 
 class CourseSessionHistoryView(TeacherRequiredMixin, ListView):
-    template_name = 'teachers/course_session_history/course_session_history_template.html'
+    template_name = 'teachers/course_session_history.html'
     context_object_name = 'sessions'
 
     def get_course(self):

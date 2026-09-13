@@ -1,9 +1,0 @@
-<ul class="messages">
-    {% if messages %}
-        {% for message in messages %}
-            <li class="{{ message.tags }}">{{ message }}</li>
-        {% endfor %}
-    {% endif %}
-</ul>
-
-{% include "teachers/session_detail/attendance_form_partial.html" %}

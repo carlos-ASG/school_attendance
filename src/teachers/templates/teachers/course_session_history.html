@@ -1,4 +1,13 @@
-<table>
+{% extends "teachers/base.html" %}
+
+{% block title %}{{ course.subject }} — Historial de sesiones — Teacher Panel{% endblock %}
+
+{% block content %}
+    <p><a href="{% url 'teachers:course_detail' course.pk %}">&larr; Volver al curso</a></p>
+    <h1>{{ course.subject }} — Historial de sesiones</h1>
+
+    <div id="session-list">
+        {% partialdef session_list inline %}<table>
     <thead>
         <tr>
             <th>Date</th>
@@ -18,3 +27,6 @@
         {% endfor %}
     </tbody>
 </table>
+{% endpartialdef session_list %}
+    </div>
+{% endblock %}

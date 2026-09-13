@@ -24,7 +24,7 @@ STATUS_CYCLE = {
 # --- Template views (full pages) ---
 
 class SessionDetailView(TeacherRequiredMixin, DetailView):
-    template_name = 'teachers/session_detail/session_detail_template.html'
+    template_name = 'teachers/session_detail.html'
     context_object_name = 'session'
 
     def get_queryset(self):
@@ -66,7 +66,11 @@ class SessionDetailView(TeacherRequiredMixin, DetailView):
     def _render_panel(self, request, context=None):
         if context is None:
             context = self.get_context_data(object=self.object)
-        return render(request, 'teachers/session_detail/attendance_panel_partial.html', context)
+        return render(
+            request,
+            'teachers/session_detail.html#attendance_panel',
+            context,
+        )
 
 
 # --- Partial views (HTMX fragments) ---
@@ -94,12 +98,20 @@ class RecordToggleStatusView(TeacherRequiredMixin, View):
             record.full_clean()
         except ValidationError as exc:
             context = {'record': record, 'errors': exc.message_dict}
-            response = render(request, 'teachers/session_detail/record_status_button_partial.html', context)
+            response = render(
+                request,
+                'teachers/session_detail.html#record_status_button',
+                context,
+            )
             return retarget(response, f'#record-status-{record.pk}')
         record.save(update_fields=['status', 'updated_at'])
 
         context = {'record': record}
-        return render(request, 'teachers/session_detail/record_status_button_partial.html', context)
+        return render(
+            request,
+            'teachers/session_detail.html#record_status_button',
+            context,
+        )
 
 
 class SessionUpdateView(SessionMixin, View):
@@ -107,7 +119,9 @@ class SessionUpdateView(SessionMixin, View):
         session = self.get_session(kwargs['pk'])
         form = SessionForm(initial={'date': session.date})
         context = {'session': session, 'course': session.course, 'form': form}
-        return render(request, 'teachers/session_detail/session_form_partial.html', context)
+        return render(
+            request, 'teachers/session_detail.html#session_form', context
+        )
 
     def post(self, request, *args, **kwargs):
         session = self.get_session(kwargs['pk'])
@@ -125,13 +139,17 @@ class SessionUpdateView(SessionMixin, View):
                     'today': timezone.now().date(),
                 }
                 return render(
-                    request, 'teachers/session_detail/session_header_partial.html', context
+                    request,
+                    'teachers/session_detail.html#session_header',
+                    context,
                 )
             return HttpResponseRedirect(
                 reverse('teachers:session_detail', args=[session.pk])
             )
         context = {'session': session, 'course': session.course, 'form': form}
-        response = render(request, 'teachers/session_detail/session_form_partial.html', context)
+        response = render(
+            request, 'teachers/session_detail.html#session_form', context
+        )
         if request.htmx:
             return retarget(response, '#session-edit')
         return response
