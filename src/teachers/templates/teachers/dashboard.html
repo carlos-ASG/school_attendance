@@ -1,6 +1,6 @@
 {% extends "teachers/base.html" %}
 
-{% block title %}My Courses — Teacher Panel{% endblock %}
+{% block title %}Mis Cursos — Panel del Profesor{% endblock %}
 
 {% block content %}
     <h1>Mis Cursos</h1>
@@ -41,6 +41,32 @@
                 </a>
             </c-card.footer>
         </c-card>
+
+        <div class="mb-4 grid grid-cols-2 gap-4">
+            <c-card>
+                <c-card.header>
+                    <c-card.title>Sesión de hoy</c-card.title>
+                </c-card.header>
+                <c-card.footer>
+                    <form method="post" action="{% url 'teachers:today_session_create' course.pk %}">
+                        {% csrf_token %}
+                        <c-button type="submit" class="w-full">Tomar asistencia</c-button>
+                    </form>
+                </c-card.footer>
+            </c-card>
+
+            <c-card>
+                <c-card.header>
+                    <c-card.title>Historial de sesiones</c-card.title>
+                </c-card.header>
+                <c-card.footer>
+                    <a href="{% url 'teachers:course_session_history' course.pk %}"
+                       class="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
+                        Ver historial
+                    </a>
+                </c-card.footer>
+            </c-card>
+        </div>
     {% empty %}
         <p>No tienes cursos asignados aún.</p>
     {% endfor %}

@@ -1,19 +1,8 @@
-from django.contrib import messages
 from django.db.models import Count
-from django.http import HttpResponseRedirect
-from django.shortcuts import render
-from django.urls import reverse
-from django.utils import timezone
 from django.views.generic import DetailView
 
-from school.models import (
-    AttendanceRecord,
-    AttendanceSession,
-    Course,
-    create_attendance_records,
-)
+from school.models import AttendanceRecord, Course
 
-from ..forms import SessionForm
 from .mixins import TeacherRequiredMixin
 
 ATTENDED_STATUSES = (
@@ -39,10 +28,6 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['attendance'] = self.get_attendance_summary()
-        context['form'] = self.session_form
-        context['today_session'] = self.object.sessions.filter(
-            date=timezone.now().date()
-        ).first()
         return context
 
     def get_attendance_summary(self):
@@ -83,42 +68,3 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
                 'percentage': f'{attended / total * 100:.1f}',
             }
         return summary
-
-    def dispatch(self, request, *args, **kwargs):
-        self.session_form = None
-        return super().dispatch(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if 'create_today' in request.POST:
-            return self._create_today_session(request)
-        form = SessionForm(request.POST, course=self.object)
-        if form.is_valid():
-            session = AttendanceSession.objects.create(
-                course=self.object,
-                date=form.cleaned_data['date'],
-                created_by=self.teacher,
-            )
-            create_attendance_records(session)
-            messages.success(request, 'Session created.')
-            return HttpResponseRedirect(
-                reverse('teachers:session_detail', args=[session.pk])
-            )
-        self.session_form = form
-        context = self.get_context_data(object=self.object)
-        return render(request, self.template_name, context)
-
-    def _create_today_session(self, request):
-        today = timezone.now().date()
-        session = self.object.sessions.filter(date=today).first()
-        if session is None:
-            session = AttendanceSession.objects.create(
-                course=self.object,
-                date=today,
-                created_by=self.teacher,
-            )
-            create_attendance_records(session)
-            messages.success(request, 'Session created.')
-        return HttpResponseRedirect(
-            reverse('teachers:session_detail', args=[session.pk])
-        )

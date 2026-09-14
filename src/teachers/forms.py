@@ -13,20 +13,21 @@ class SessionForm(forms.Form):
         localize=False,
     )
 
-    def __init__(self, *args, course=None, exclude_pk=None, **kwargs):
+    def __init__(self, *args, course=None, **kwargs):
         self.course = course
-        self.exclude_pk = exclude_pk
         super().__init__(*args, **kwargs)
 
     def clean_date(self):
         date = self.cleaned_data['date']
-        if date > timezone.now().date():
+        today = timezone.now().date()
+        if date > today:
             raise forms.ValidationError('La fecha no puede ser posterior a hoy.')
-        sessions = AttendanceSession.objects.filter(course=self.course, date=date)
-        if self.exclude_pk is not None:
-            sessions = sessions.exclude(pk=self.exclude_pk)
-        if sessions.exists():
-            raise forms.ValidationError('A session already exists for this date.')
+        if date == today:
+            raise forms.ValidationError(
+                'Para la sesión de hoy, usa la tarjeta "Sesión de hoy".'
+            )
+        if AttendanceSession.objects.filter(course=self.course, date=date).exists():
+            raise forms.ValidationError('Ya existe una sesión para esta fecha.')
         return date
 
 
@@ -34,6 +35,27 @@ AttendanceFormSet = forms.modelformset_factory(
     AttendanceRecord,
     fields=('notes',),
     widgets={
+        'notes': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Nota opcional'}),
+    },
+    extra=0,
+)
+
+AttendanceEditFormSet = forms.modelformset_factory(
+    AttendanceRecord,
+    fields=('status', 'notes'),
+    widgets={
+        'status': forms.Select(
+            choices=AttendanceRecord.Status.choices,
+            attrs={
+                'class': (
+                    'flex h-10 w-full items-center justify-between rounded-md '
+                    'border border-input bg-background px-3 py-2 text-sm '
+                    'ring-offset-background focus:outline-hidden focus:ring-2 '
+                    'focus:ring-ring focus:ring-offset-2 '
+                    'disabled:cursor-not-allowed disabled:opacity-50'
+                ),
+            },
+        ),
         'notes': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Nota opcional'}),
     },
     extra=0,

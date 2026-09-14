@@ -1,28 +1,85 @@
 {% extends "teachers/base.html" %}
 
-{% block title %}{{ course.subject }} — Historial de sesiones — Teacher Panel{% endblock %}
+{% block title %}{{ course.subject }} — Historial de sesiones — Panel del Profesor{% endblock %}
 
 {% block content %}
     <p><a href="{% url 'teachers:course_detail' course.pk %}">&larr; Volver al curso</a></p>
     <h1>{{ course.subject }} — Historial de sesiones</h1>
 
+    <div id="session-create">
+        {% partialdef session_create_form inline %}
+        <c-card class="mb-4">
+            <c-card.header>
+                <c-card.title>Crear sesión en otra fecha</c-card.title>
+            </c-card.header>
+            <c-card.content>
+                <form method="post"
+                      hx-post="{% url 'teachers:course_session_history' course.pk %}"
+                      hx-target="#session-create" hx-swap="innerHTML"
+                      class="flex items-end gap-3">
+                    {% csrf_token %}
+                    <div>
+                        {{ form.date.label_tag }}
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                            <ul class="errorlist">{{ form.date.errors }}</ul>
+                        {% endif %}
+                    </div>
+                    <c-button type="submit">Crear sesión</c-button>
+                </form>
+            </c-card.content>
+        </c-card>
+        {% endpartialdef session_create_form %}
+    </div>
+
     <div id="session-list">
         {% partialdef session_list inline %}<table>
     <thead>
         <tr>
-            <th>Date</th>
-            <th>Created</th>
+            <th>Fecha</th>
+            <th>Creación</th>
+            <th>Acciones</th>
         </tr>
     </thead>
     <tbody>
         {% for session in sessions %}
             <tr>
-                <td><a href="{% url 'teachers:session_detail' session.pk %}">{{ session.date }}</a></td>
+                <td>{{ session.date }}</td>
                 <td>{{ session.created_at }}</td>
+                <td>
+                    <a href="{% url 'teachers:session_detail' session.pk %}"
+                       class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
+                        Ver
+                    </a>
+                    <c-alert-dialog>
+                        <c-button variant="destructive" type="button">
+                            <c-alert-dialog.trigger>Eliminar</c-alert-dialog.trigger>
+                        </c-button>
+
+                        <c-alert-dialog.content>
+                            <c-alert-dialog.header>
+                                <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
+                                <c-alert-dialog.description>
+                                    Esta acción eliminará la sesión del {{ session.date }} y todos sus registros de asistencia. No se puede deshacer.
+                                </c-alert-dialog.description>
+                            </c-alert-dialog.header>
+
+                            <c-alert-dialog.footer>
+                                <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
+                                <c-alert-dialog.action variant="destructive"
+                                                       hx-post="{% url 'teachers:session_delete' session.pk %}"
+                                                       hx-target="#session-list"
+                                                       hx-swap="innerHTML">
+                                    Eliminar
+                                </c-alert-dialog.action>
+                            </c-alert-dialog.footer>
+                        </c-alert-dialog.content>
+                    </c-alert-dialog>
+                </td>
             </tr>
         {% empty %}
             <tr>
-                <td colspan="2">No sessions yet.</td>
+                <td colspan="3">Aún no hay sesiones registradas.</td>
             </tr>
         {% endfor %}
     </tbody>

@@ -1,30 +1,30 @@
 {% extends "teachers/base.html" %}
 
-{% block title %}{{ course.subject }} — Teacher Panel{% endblock %}
+{% block title %}{{ course.subject }} — Panel del Profesor{% endblock %}
 
 {% block content %}
     <h1>{{ course.subject }}</h1>
     <p>
-        <strong>Group:</strong> {{ course.student_group }}
-        — {{ course.student_group.students.count }} student(s)
+        <strong>Grupo:</strong> {{ course.student_group }}
+        — {{ course.student_group.students.count }} estudiante(s)
     </p>
     {% if course.classroom %}
-        <p><strong>Classroom:</strong> {{ course.classroom }}</p>
+        <p><strong>Aula:</strong> {{ course.classroom }}</p>
     {% endif %}
 
     <div class="card">
-        <h2>Schedule</h2>
+        <h2>Horario</h2>
         <ul>
             {% for slot in course.schedule_slots.all %}
                 <li>{{ slot.get_weekday_display }} {{ slot.start_time }}–{{ slot.end_time }}</li>
             {% empty %}
-                <li>No schedule slots.</li>
+                <li>Sin horario configurado.</li>
             {% endfor %}
         </ul>
     </div>
 
     <div class="card">
-        <h2>Students</h2>
+        <h2>Estudiantes</h2>
         <table>
             <thead>
                 <tr>
@@ -40,43 +40,29 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="2">No students.</td>
+                        <td colspan="2">No hay estudiantes.</td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    <div id="session-panel">
-        {% partialdef session_panel inline %}<div class="card">
-    <h2>Crear sesión</h2>
-    {% if today_session %}
-        <p>
-            <a href="{% url 'teachers:session_detail' today_session.pk %}">Sesión de hoy</a>
-        </p>
-    {% else %}
-        <form method="post" action="{% url 'teachers:course_detail' course.pk %}">
-            {% csrf_token %}
-            <button type="submit" name="create_today" value="1">Crear sesión de hoy</button>
-        </form>
-    {% endif %}
-    <form method="post" action="{% url 'teachers:course_detail' course.pk %}">
-        {% csrf_token %}
-        {% if form and form.non_field_errors %}
-            <ul class="errorlist">{{ form.non_field_errors }}</ul>
-        {% endif %}
-        {{ form.date.label_tag }}
-        {{ form.date }}
-        {% if form.date.errors %}
-            <ul class="errorlist">{{ form.date.errors }}</ul>
-        {% endif %}
-        <button type="submit">Crear sesión en otra fecha</button>
-    </form>
-</div>
-{% endpartialdef session_panel %}
-    </div>
+    <c-card class="mt-4">
+        <c-card.header>
+            <c-card.title>Sesión de hoy</c-card.title>
+        </c-card.header>
+        <c-card.footer>
+            <form method="post" action="{% url 'teachers:today_session_create' course.pk %}">
+                {% csrf_token %}
+                <c-button type="submit">Tomar asistencia</c-button>
+            </form>
+        </c-card.footer>
+    </c-card>
 
-    <p>
-        <a href="{% url 'teachers:course_session_history' course.pk %}"><button type="button">Ver sesiones</button></a>
+    <p class="mt-4">
+        <a href="{% url 'teachers:course_session_history' course.pk %}"
+           class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
+            Historial de sesiones
+        </a>
     </p>
 {% endblock %}
