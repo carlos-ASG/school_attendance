@@ -1,0 +1,14 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Panel del Profesor{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'core-ui/css/output.css' %}">
+    <script defer src="{% static 'core-ui/js/alpine.min.js' %}"></script>
+</head>
+<body class="bg-background text-foreground">
+    {% block content %}{% endblock %}
+</body>
+</html>

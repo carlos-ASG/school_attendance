@@ -16,24 +16,6 @@ body {
     background: var(--bg);
 }
 
-nav {
-    background: var(--primary);
-    color: #fff;
-    padding: 0.75rem 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-}
-
-nav a {
-    color: #fff;
-    text-decoration: none;
-}
-
-nav .spacer {
-    flex: 1;
-}
-
 main {
     max-width: 60rem;
     margin: 1.5rem auto;

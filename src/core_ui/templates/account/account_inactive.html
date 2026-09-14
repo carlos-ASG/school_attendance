@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Cuenta inactiva" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-background">
+    <c-card class='w-[400px]'>
+        <c-card.header>
+            <c-card.title>{% trans "Cuenta inactiva" %}</c-card.title>
+            <c-card.description>
+                {% trans "Esta cuenta está inactiva. Contacta a soporte si crees que esto es un error." %}
+            </c-card.description>
+        </c-card.header>
+
+        <c-card.footer class='flex flex-col space-y-3 pt-6'>
+            <c-button onclick="window.location.href='{% url 'account_login' %}'" class="w-full" variant="outline">
+                {% trans "Volver a iniciar sesión" %}
+            </c-button>
+        </c-card.footer>
+    </c-card>
+</div>
+{% endblock %}

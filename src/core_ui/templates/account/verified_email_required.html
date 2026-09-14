@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Verifica tu dirección de correo electrónico" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-background">
+    <c-card class='w-[400px]'>
+        <c-card.header>
+            <c-card.title>{% trans "Verifica tu dirección de correo electrónico" %}</c-card.title>
+            <c-card.description>
+                {% trans "Esta parte del sitio requiere que verifiques tu dirección de correo." %}
+            </c-card.description>
+        </c-card.header>
+
+        <c-card.content class='space-y-4'>
+            <c-alert>
+                <c-alert.description>
+                    {% trans "Te enviamos un correo con un enlace de verificación. Revisa tu bandeja de entrada." %}
+                </c-alert.description>
+            </c-alert>
+        </c-card.content>
+
+        <c-card.footer class='flex flex-col space-y-3'>
+            <c-button onclick="window.location.href='{% url 'account_email' %}'" class="w-full">
+                {% trans "Gestionar direcciones de correo" %}
+            </c-button>
+        </c-card.footer>
+    </c-card>
+</div>
+{% endblock %}

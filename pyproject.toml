@@ -9,8 +9,11 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "django>=6.1.1",
+    "django-allauth>=65.19.3",
+    "django-cotton>=2.7.2",
     "django-htmx>=1.29.0",
     "django-import-export>=4.4.1",
+    "django-tailwind-cli>=4.8.0",
     "django-unfold>=0.105.0",
     "openpyxl>=3.1.5",
 ]
@@ -23,4 +26,4 @@ requires = ["uv_build>=0.12.12,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["config", "school", "teachers"]
+module-name = ["config", "school", "teachers", "core_ui"]

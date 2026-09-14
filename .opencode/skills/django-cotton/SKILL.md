@@ -19,10 +19,11 @@ Cotton is this repo's UI component engine — the layer under shadcn/django (see
   unless something forces manual setup; if so, switch to
   `django_cotton.apps.SimpleAppConfig` and copy the explicit loader/builtins config
   from the quickstart docs.
-- Components live at project root: `<repo>/templates/cotton/` (`BASE_DIR` is the repo
-  root). Regular templates placed next to them (e.g. `templates/account/`) require
-  `TEMPLATES[0]['DIRS'] = [BASE_DIR / 'templates']` — currently `DIRS: []` in
-  `src/config/settings.py`.
+- Components live in the `core_ui` design-system app: `src/core_ui/templates/cotton/`.
+  Cotton 2.7.2 scans the `templates/` dir of every installed app
+  (`cotton_loader.Loader.get_dirs()`), so app placement needs no loader config and
+  `TEMPLATES[0]['DIRS']` stays `[]` in `src/config/settings.py`. The shadcn CLI writes
+  to project-root `templates/cotton/` — move new components into the app after `add`.
 
 ## Naming and location rules
 
@@ -32,7 +33,8 @@ Cotton is this repo's UI component engine — the layer under shadcn/django (see
 - `index.html` in a folder makes the folder itself the default component: `cotton/card/index.html`
   → `<c-card />`, siblings via `<c-card.header />` (compound components).
 - Config keys (`src/config/settings.py`): `COTTON_DIR` (default `'cotton'`),
-  `COTTON_BASE_DIR` (None → `BASE_DIR`), `COTTON_SNAKE_CASED_NAMES` (True),
+  `COTTON_BASE_DIR` (None → `BASE_DIR`; adds `<base>/templates` as an extra scan root —
+  unset in this repo since components live in the `core_ui` app), `COTTON_SNAKE_CASED_NAMES` (True),
   `COTTON_ISOLATE_BY_DEFAULT` (False).
 
 ## Syntax reference

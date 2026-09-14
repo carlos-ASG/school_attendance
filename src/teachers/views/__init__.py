@@ -1,4 +1,4 @@
-from .auth import HomeRedirectView, LoginView, LogoutView
+from .auth import HomeRedirectView
 from .course_detail import CourseDetailView
 from .course_session_history import CourseSessionHistoryView
 from .dashboard import DashboardView
@@ -13,8 +13,6 @@ from .session_detail import (
 
 __all__ = [
     'HomeRedirectView',
-    'LoginView',
-    'LogoutView',
     'DashboardView',
     'CourseDetailView',
     'CourseSessionHistoryView',

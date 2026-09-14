@@ -1,25 +1,33 @@
 {% load static django_htmx %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Teacher Panel{% endblock %}</title>
+    <title>{% block title %}Panel del Profesor{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'core-ui/css/output.css' %}">
     <link rel="stylesheet" href="{% static 'teachers/css/panel.css' %}">
     {% htmx_script %}
+    <script defer src="{% static 'core-ui/js/alpine.min.js' %}"></script>
 </head>
 <body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
-    <nav>
-        <a href="{% url 'teachers:dashboard' %}"><strong>Teacher Panel</strong></a>
+    <c-navigation-menu class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <a href="{% url 'teachers:dashboard' %}" class="text-lg font-semibold text-foreground">Panel del Profesor</a>
         {% if request.user.is_authenticated %}
-            <span class="spacer"></span>
-            <span>{{ teacher_name|default:request.user.username }}</span>
-            <form method="post" action="{% url 'teachers:logout' %}" hx-boost="false">
-                {% csrf_token %}
-                <button type="submit">Log out</button>
-            </form>
+            <c-navigation_menu.list class="items-center">
+                <c-navigation_menu.item>
+                    <c-navigation_menu.link href="{% url 'teachers:dashboard' %}" class="p-2">Panel</c-navigation_menu.link>
+                </c-navigation_menu.item>
+            </c-navigation_menu.list>
+            <div class="flex items-center gap-3">
+                <span class="text-sm text-muted-foreground">{{ teacher_name|default:request.user.username }}</span>
+                <form method="post" action="{% url 'account_logout' %}" hx-boost="false">
+                    {% csrf_token %}
+                    <c-button variant="outline" type="submit" class="h-9 px-3 text-sm">Cerrar sesión</c-button>
+                </form>
+            </div>
         {% endif %}
-    </nav>
+    </c-navigation-menu>
     <main>
         <ul class="messages">
             {% for message in messages %}

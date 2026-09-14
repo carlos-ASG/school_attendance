@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Cerrar sesión" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-background">
+    <c-card class='w-[400px]'>
+        <c-card.header>
+            <c-card.title>{% trans "Cerrar sesión" %}</c-card.title>
+            <c-card.description>
+                {% trans "¿Seguro que quieres cerrar sesión?" %}
+            </c-card.description>
+        </c-card.header>
+
+        <form method="POST" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <c-card.footer class='flex justify-between pt-6'>
+                <c-button variant='outline' type="button" onclick="window.history.back()">
+                    {% trans "Cancelar" %}
+                </c-button>
+                <c-button type="submit">
+                    {% trans "Cerrar sesión" %}
+                </c-button>
+            </c-card.footer>
+        </form>
+    </c-card>
+</div>
+{% endblock %}

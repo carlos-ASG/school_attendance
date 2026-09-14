@@ -6,8 +6,6 @@ app_name = 'teachers'
 
 urlpatterns = [
     path('', views.DashboardView.as_view(), name='dashboard'),
-    path('login/', views.LoginView.as_view(), name='login'),
-    path('logout/', views.LogoutView.as_view(), name='logout'),
     path('courses/<int:pk>/', views.CourseDetailView.as_view(), name='course_detail'),
     path('courses/<int:pk>/history/', views.CourseSessionHistoryView.as_view(), name='course_session_history'),
     path('sessions/<int:pk>/', views.SessionDetailView.as_view(), name='session_detail'),

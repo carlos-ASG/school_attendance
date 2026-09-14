@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Component-based UI system
-The teacher panel front-end SHALL be built with django-cotton components: reusable components SHALL live in `templates/cotton/` at the project root and be used from templates as `<c-*>` tags (slots, `<c-vars />`, variants). The system SHALL support the project-root templates directory through `TEMPLATES[0]['DIRS']`. User-visible component copy SHALL be in Spanish.
+The teacher panel front-end SHALL be built with django-cotton components: reusable components SHALL live in `src/core_ui/templates/cotton/` inside the dedicated `core_ui` app and be used from templates as `<c-*>` tags (slots, `<c-vars />`, variants). The `core_ui` app SHALL own the design-system templates and statics so they are reusable by future apps (e.g. a students panel). User-visible component copy SHALL be in Spanish.
 
 #### Scenario: Panel template uses a design-system component
 - **WHEN** a panel template includes a design-system component such as `<c-button variant="outline">Cancelar</c-button>`
@@ -18,18 +18,22 @@ shadcn/django components SHALL be added to the repo via the `shadcn_django` CLI 
 
 #### Scenario: A component is added via the CLI
 - **WHEN** `uvx shadcn_django@latest add button` is run
-- **THEN** the button component source (and any dependencies it requires) is copied into `templates/cotton/` and is committed to the repo
+- **THEN** the button component source (and any dependencies it requires) is copied into the repo's cotton components directory and is committed to the repo (the CLI writes to the project-root `templates/cotton/`; files are then moved into `src/core_ui/templates/cotton/`)
+
+#### Scenario: Signup is closed by business rule
+- **WHEN** a user opens the account signup URL
+- **THEN** no registration interface is reachable from the login page and the signup URL renders the sign-up-closed page (accounts are created by admins via django-admin; the `signup` templates are kept for potential future use)
 
 #### Scenario: Shipped English copy is translated
 - **WHEN** a copied component or allauth template contains user-visible English text
 - **THEN** it is translated to Spanish in the repo's copy
 
 ### Requirement: Tailwind CSS built without node
-The design system's styles SHALL be built with Tailwind CSS using django-tailwind-cli (uv-managed tooling, no node/npm in the repo), including the `tw-animate-css` stylesheet for component animations. The compiled CSS SHALL be linked from the panel base template.
+The design system's styles SHALL be built with Tailwind CSS using django-tailwind-cli (uv-managed tooling, no node/npm in the repo), including the `tw-animate-css` stylesheet for component animations. The compiled CSS SHALL live in the `core_ui` app's static files (namespaced `core-ui/`) and be linked from the panel base template.
 
 #### Scenario: Styles are rebuilt
 - **WHEN** `uv run manage.py tailwind build` (or the `tailwind start` watcher) runs
-- **THEN** the compiled CSS is produced from the project's templates and is served as a static file
+- **THEN** the compiled CSS is produced into `src/core_ui/static/core-ui/css/output.css` from the design-system input CSS and is served as `core-ui/css/output.css`
 
 #### Scenario: Repo stays uv-only
 - **WHEN** the design system is installed

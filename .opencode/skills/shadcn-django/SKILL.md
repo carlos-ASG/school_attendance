@@ -18,14 +18,21 @@ dependencies) into `templates/cotton/`. Nothing is a runtime dependency. Editing
 copied files is expected and normal: translating copy to Spanish, tweaking classes,
 adding variants. Component changes are made in your repo, not upstream.
 
+**Repo location:** components live in `src/core_ui/templates/cotton/` (the `core_ui`
+design-system app). The CLI always writes to project-root `templates/cotton/` — after
+`add`, move the new files into `src/core_ui/templates/cotton/` (cotton 2.7.2 discovers
+`<app>/templates/` dirs of every installed app, so no loader config is needed).
+
 ## Install flow (this repo's decisions)
 
 1. **django-cotton first** — `uv add django-cotton` + `INSTALLED_APPS` (see
    `django-cotton` skill).
 2. **Scaffold** — `uvx shadcn_django@latest init` from the repo root. Creates
-   `templates/cotton/`, Tailwind config files, and the shadcn CSS variables
-   (design tokens). Inspect the resulting diff and reconcile with existing settings
-   (it may write config files); verify with `uv run manage.py check`.
+   `templates/cotton/`, an `input.css`, and the shadcn CSS variables (design tokens).
+   Move both into the `core_ui` app (`src/core_ui/templates/cotton/`,
+   `src/core_ui/input.css`), then delete the project-root leftovers. Inspect the
+   resulting diff and reconcile with existing settings (it may write config files);
+   verify with `uv run manage.py check`.
 3. **Tailwind build — django-tailwind-cli** (repo stays uv-only, no node):
    - `uv add django-tailwind-cli`, add `django_tailwind_cli` to `INSTALLED_APPS`
    - `uv run manage.py tailwind install_cli` (downloads the tailwind CLI binary)
@@ -37,9 +44,10 @@ adding variants. Component changes are made in your repo, not upstream.
 4. **Alpine.js — vendor it** like `src/teachers/static/teachers/js/htmx.min.js`:
    download `alpine.min.js` (3.x CDN build) into static and load with
    `<script defer src="...">` in `<head>`. No CDN in templates.
-5. **Base template `<head>`**: link the compiled CSS (`output.css`) + Alpine script.
-   `templates/cotton/` is found via cotton's loader; project-root templates
-   (e.g. `templates/account/`) need `TEMPLATES[0]['DIRS'] = [BASE_DIR / 'templates']`.
+5. **Base template `<head>`**: link the compiled CSS (`core-ui/css/output.css`) +
+   Alpine script (`core-ui/js/alpine.min.js`), both served from the `core_ui` app's
+   static dir (`src/core_ui/static/core-ui/`); no `TEMPLATES[0]['DIRS']` needed —
+   app template dirs are discovered natively.
 
 ## CLI
 
@@ -51,7 +59,8 @@ uvx shadcn_django@latest add navigation_menu toast   # several
 ```
 
 Components land in `templates/cotton/` — inspect filenames after `add` to confirm
-they match the repo's default snake_case expectations (`COTTON_SNAKE_CASED_NAMES = True`).
+they match the repo's default snake_case expectations (`COTTON_SNAKE_CASED_NAMES = True`),
+then move them into `src/core_ui/templates/cotton/`.
 
 ## Component catalog
 
@@ -98,7 +107,9 @@ HTMX attrs pass through via `{{ attrs }}` (cotton skill).
 
 `uvx shadcn_django@latest add allauth` installs **17 templates** to
 `templates/account/` plus the components they use (Card, Button, Input, Label,
-Checkbox, Alert, Badge, Separator):
+Checkbox, Alert, Badge, Separator) — in this repo the block lives in
+`src/core_ui/templates/account/` (+ `base.html`) and `core_ui` precedes `allauth`
+in `INSTALLED_APPS` so the copies shadow allauth's builtins:
 
 - Auth: `login.html`, `signup.html`, `logout.html`, `reauthenticate.html`
 - Password: `password_change.html`, `password_set.html`, `password_reset.html`,
@@ -123,7 +134,11 @@ ACCOUNT_EMAIL_VERIFICATION = 'optional'   # dev: console email backend (MAILERS)
 LOGIN_URL = 'account_login'               # replace '/teacher/login/'
 ```
 
-- `templates/account/` requires `TEMPLATES[0]['DIRS'] = [BASE_DIR / 'templates']`.
+- Templates live app-level (`src/core_ui/templates/account/`); no `TEMPLATES[0]['DIRS']`
+  — `core_ui` must appear before `allauth` in `INSTALLED_APPS`.
+- Signup is closed by business rule (accounts created via django-admin): the adapter
+  returns `False` from `is_open_for_signup()` and the login page has no signup link;
+  templates are kept for potential future use.
 - Verify django-allauth resolves against **Django 6.1** on the first
   `uv add django-allauth`; confirm with `uv run manage.py check` + migrations.
 - The staff→admin / teacher→dashboard redirect logic from

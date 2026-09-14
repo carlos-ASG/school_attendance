@@ -44,6 +44,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_htmx',
+    'django_cotton',
+    'django_tailwind_cli',
+    'core_ui',
+    'allauth',
+    'allauth.account',
     'school',
     'teachers',
 ]
@@ -57,6 +62,14 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
+]
+
+# Authentication: allauth first (account flows), ModelBackend as fallback for admin
+
+AUTHENTICATION_BACKENDS = [
+    'allauth.account.auth_backends.AuthenticationBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -114,9 +127,17 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'es'
 
-LOGIN_URL = '/teacher/login/'
-LOGIN_REDIRECT_URL = '/teacher/'
-LOGOUT_REDIRECT_URL = '/teacher/login/'
+LOGIN_URL = 'account_login'
+LOGIN_REDIRECT_URL = 'teachers:dashboard'
+LOGOUT_REDIRECT_URL = 'account_login'
+
+# django-allauth
+
+ACCOUNT_ADAPTER = 'config.adapters.AccountAdapter'
+
+ACCOUNT_LOGIN_METHODS = {'username'}
+
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
 
 TIME_ZONE = 'UTC'
 
@@ -129,6 +150,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Design-system app (cotton components, allauth templates, tailwind assets)
+
+STATICFILES_DIRS = [BASE_DIR / 'src' / 'core_ui' / 'static']
+
+# Tailwind CSS via django-tailwind-cli (uv-only, no node)
+
+TAILWIND_CLI_SRC_CSS = 'src/core_ui/input.css'
+TAILWIND_CLI_DIST_CSS = 'core-ui/css/output.css'
 
 # Test discovery for apps living under src/ (tests.py inside each app package)
 

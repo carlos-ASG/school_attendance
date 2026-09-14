@@ -38,11 +38,13 @@ and `shadcn-django` (design system layer); they are the reference for implementa
    then `add <component>`. Components land in `templates/cotton/` and are edited in-repo
    (Spanish translation is part of adoption). Alternative: prebuilt kits (cotton-ui) —
    less aligned with the shadcn docs the user adopted.
-3. **Component + auth template location: project root** — `templates/cotton/`,
-   `templates/account/`; `TEMPLATES[0]['DIRS'] = [BASE_DIR / 'templates']` so Django's
-   loaders find them; cotton finds `cotton/` via `COTTON_BASE_DIR` → `BASE_DIR`.
-   Alternative: app-level `src/teachers/templates/cotton/` — rejected: the design system
-   is app-agnostic and Unfold apps must not touch it.
+3. **Component + auth template location: the `core_ui` app** — `src/core_ui/templates/cotton/`,
+   `src/core_ui/templates/account/` (plus its `base.html`). Django discovers app template dirs
+   natively (cotton 2.7.2 scans every installed app's `templates/`; no `TEMPLATES[0]['DIRS']`
+   needed), `core_ui` precedes `allauth` in `INSTALLED_APPS` so the copied `account/` templates
+   shadow allauth's builtins. Alternative: project-root `templates/` — rejected after initial
+   implementation: a dedicated app keeps the design system reusable by future apps (e.g. a
+   students panel) without root-level files.
 4. **Tailwind: django-tailwind-cli (uv-only)** — `manage.py tailwind install_cli/start`
    keeps the repo npm-free; `tw-animate-css` via manual CSS download. Alternative: npm +
    `@tailwindcss/cli` (standard shadcn path) — rejected: introduces node tooling against
@@ -69,8 +71,9 @@ and `shadcn-django` (design system layer); they are the reference for implementa
 8. **Fragments: partialdef remains the HTMX fragment mechanism** — cotton components may
    compose inside fragments; `render_component()` only for single-component responses
    (see `django-cotton` skill). Existing fragment behavior must stay byte-identical.
-9. **Shared static assets: project-level `static/`** — new `STATICFILES_DIRS` entry for
-   `output.css`, `alpine.min.js`, `tw-animate.css`; app assets (`teachers/css/panel.css`,
+9. **Shared static assets: the `core_ui` app's static dir** — app static files namespaced
+   `core-ui/` (`css/output.css`, `css/tw-animate.css`, `js/alpine.min.js`); the Tailwind
+   input CSS lives at `src/core_ui/input.css`; app assets (`teachers/css/panel.css`,
    `htmx.min.js`) stay app-level until individually migrated.
 
 ## Risks / Trade-offs

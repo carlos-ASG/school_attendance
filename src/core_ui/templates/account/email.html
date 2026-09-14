@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Direcciones de correo electrónico" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-background">
+    <c-card class='w-[500px]'>
+        <c-card.header>
+            <c-card.title>{% trans "Direcciones de correo electrónico" %}</c-card.title>
+            <c-card.description>
+                {% trans "Gestiona las direcciones de correo asociadas a tu cuenta." %}
+            </c-card.description>
+        </c-card.header>
+
+        <c-card.content class='space-y-6'>
+            {% if emailaddresses %}
+                <div class="space-y-3">
+                    {% for emailaddress in emailaddresses %}
+                        <div class="flex items-center justify-between p-3 border rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-sm">{{ emailaddress.email }}</span>
+                                {% if emailaddress.primary %}
+                                    <c-badge>{% trans "Principal" %}</c-badge>
+                                {% endif %}
+                                {% if emailaddress.verified %}
+                                    <c-badge variant="outline">{% trans "Verificada" %}</c-badge>
+                                {% else %}
+                                    <c-badge variant="destructive">{% trans "Sin verificar" %}</c-badge>
+                                {% endif %}
+                            </div>
+                            <form method="POST" action="{% url 'account_email' %}" class="flex items-center space-x-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="email" value="{{ emailaddress.email }}">
+                                {% if not emailaddress.primary %}
+                                    <c-button type="submit" name="action_primary" variant="ghost" size="sm">
+                                        {% trans "Hacer principal" %}
+                                    </c-button>
+                                {% endif %}
+                                {% if not emailaddress.verified %}
+                                    <c-button type="submit" name="action_send" variant="ghost" size="sm">
+                                        {% trans "Reenviar" %}
+                                    </c-button>
+                                {% endif %}
+                                <c-button type="submit" name="action_remove" variant="ghost" size="sm" class="text-destructive hover:text-destructive">
+                                    {% trans "Eliminar" %}
+                                </c-button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <c-alert>
+                    <c-alert.description>
+                        {% trans "Actualmente no tienes direcciones de correo asociadas a tu cuenta." %}
+                    </c-alert.description>
+                </c-alert>
+            {% endif %}
+
+            <c-separator />
+
+            <form method="POST" action="{% url 'account_email' %}" class="space-y-4">
+                {% csrf_token %}
+                <h3 class="text-lg font-medium">{% trans "Añadir dirección de correo" %}</h3>
+
+                {% if form.non_field_errors %}
+                    <c-alert variant="destructive">
+                        <c-alert.description>
+                            {{ form.non_field_errors }}
+                        </c-alert.description>
+                    </c-alert>
+                {% endif %}
+
+                <div class='space-y-2'>
+                    <c-label for="{{ form.email.id_for_label }}">
+                        {{ form.email.label }}
+                    </c-label>
+                    <c-input
+                        type="email"
+                        name="{{ form.email.name }}"
+                        id="{{ form.email.id_for_label }}"
+                        placeholder="Nueva dirección de correo"
+                        value="{{ form.email.value|default:'' }}"
+                        {{ form.email.field.required|yesno:'required,' }}
+                        class="{{ form.email.errors|yesno:'border-destructive,' }}"
+                    />
+                    {% if form.email.errors %}
+                        <div class="text-destructive text-xs">
+                            {{ form.email.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <c-button type="submit" name="action_add">
+                    {% trans "Añadir correo" %}
+                </c-button>
+            </form>
+        </c-card.content>
+    </c-card>
+</div>
+{% endblock %}

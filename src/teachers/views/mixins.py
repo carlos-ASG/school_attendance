@@ -1,6 +1,5 @@
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
-from django.urls import reverse_lazy
 
 from school.models import Teacher
 
@@ -17,7 +16,7 @@ class TeacherRequiredMixin:
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect_to_login(request.get_full_path(), reverse_lazy('teachers:login'))
+            return redirect_to_login(request.get_full_path())
         self.teacher = get_teacher(request)
         if self.teacher is None:
             raise PermissionDenied
