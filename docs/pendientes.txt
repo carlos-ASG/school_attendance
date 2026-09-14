@@ -1,1 +1,2 @@
 - agregar mensaje de error al tratar de cambiar la fecha a una que ya tiene una sesion
+- boton de eliminar sesion no funciona

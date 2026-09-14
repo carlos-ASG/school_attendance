@@ -19,11 +19,6 @@
                 Cambiar fecha de la sesión
             </button>
         {% endif %}
-        <button type="button"
-                hx-post="{% url 'teachers:session_delete' session.pk %}"
-                hx-confirm="¿Eliminar esta sesión y todos sus registros de asistencia?">
-            Eliminar sesión
-        </button>
         <div id="session-edit"></div>
     </div>
 
@@ -63,6 +58,7 @@
     {% endif %}
 </ul>
 
+<div class="flex items-end justify-between gap-4">
 <form method="post"
       hx-post="{% url 'teachers:session_detail' session.pk %}"
       hx-target="#attendance-panel" hx-swap="innerHTML"
@@ -105,6 +101,31 @@
         <a href="{% url 'teachers:session_detail' session.pk %}"><button type="button">Salir de edición</button></a>
     {% endif %}
 </form>
+
+<c-alert-dialog>
+    <c-button variant="destructive" type="button">
+        <c-alert-dialog.trigger>Eliminar sesión</c-alert-dialog.trigger>
+    </c-button>
+
+    <c-alert-dialog.content>
+        <c-alert-dialog.header>
+            <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
+            <c-alert-dialog.description>
+                Esta acción eliminará la sesión y todos sus registros de asistencia. No se puede deshacer.
+            </c-alert-dialog.description>
+        </c-alert-dialog.header>
+
+        <c-alert-dialog.footer>
+            <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
+            <c-alert-dialog.action variant="destructive"
+                                   hx-post="{% url 'teachers:session_delete' session.pk %}"
+                                   hx-swap="none">
+                Eliminar
+            </c-alert-dialog.action>
+        </c-alert-dialog.footer>
+    </c-alert-dialog.content>
+</c-alert-dialog>
+</div>
 
 {% endpartialdef attendance_panel %}{% partialdef attendance_readonly %}<table>
     <thead>
