@@ -3,34 +3,45 @@
 {% block title %}My Courses — Teacher Panel{% endblock %}
 
 {% block content %}
-    <h1>My Courses</h1>
+    <h1>Mis Cursos</h1>
+    <br>
     {% for course in courses %}
-        <div class="card">
-            <h2>
-                <a href="{% url 'teachers:course_detail' course.pk %}">{{ course.subject }}</a>
-            </h2>
-            <p>{{ course.student_group }} — {{ course.student_count }} student(s)</p>
-            {% if course.classroom %}
-                <p><strong>Classroom:</strong> {{ course.classroom }}</p>
-            {% endif %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Day</th>
-                        <th>Time</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for slot in course.schedule_slots.all %}
+        <c-card class="mb-4">
+            <c-card.header>
+                <c-card.title>{{ course.subject }}</c-card.title>
+            </c-card.header>
+
+            <c-card.content>
+                <p>{{ course.student_group }} — {{ course.student_count }} estudiante(s)</p>
+                {% if course.classroom %}
+                    <p><strong>Aula:</strong> {{ course.classroom }}</p>
+                {% endif %}
+                <table>
+                    <thead>
                         <tr>
-                            <td>{{ slot.get_weekday_display }}</td>
-                            <td>{{ slot.start_time }}–{{ slot.end_time }}</td>
+                            <th>Día</th>
+                            <th>Horario</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        {% for slot in course.schedule_slots.all %}
+                            <tr>
+                                <td>{{ slot.get_weekday_display }}</td>
+                                <td>{{ slot.start_time }}–{{ slot.end_time }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </c-card.content>
+
+            <c-card.footer>
+                <a href="{% url 'teachers:course_detail' course.pk %}"
+                   class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90">
+                    Ver curso
+                </a>
+            </c-card.footer>
+        </c-card>
     {% empty %}
-        <p>No courses assigned to you yet.</p>
+        <p>No tienes cursos asignados aún.</p>
     {% endfor %}
 {% endblock %}

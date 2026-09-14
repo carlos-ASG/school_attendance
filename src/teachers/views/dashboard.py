@@ -16,4 +16,5 @@ class DashboardView(TeacherRequiredMixin, ListView):
             Course.objects.filter(teacher=self.teacher)
             .select_related('subject', 'teacher', 'student_group')
             .annotate(student_count=Count('student_group__students'))
+            .prefetch_related('schedule_slots')
         )
