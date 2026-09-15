@@ -17,6 +17,11 @@
   (`db.sqlite3` at repo root).
 - Email is configured via a `MAILERS` setting with console backend (dev only).
 
+## CodeGraph (mandatory)
+
+- This repo is indexed by CodeGraph (`.codegraph/` at repo root). Any agent MUST use the `codegraph_explore` MCP tool (or `codegraph explore "<query>"` in the shell) to locate and read code — it takes priority over `Read`, `Grep`, `Glob`, `find`, and similar search/read commands.
+- Use raw file tools only for what CodeGraph doesn't index (configs, docs, non-code files) or when CodeGraph explicitly flags a file as stale/omitted.
+
 ## OpenSpec workflow
 
 - This repo uses OpenSpec (spec-driven development); see `openspec/` and the `openspec-*` skills (`.opencode/skills/`) for propose/apply/archive flows. Use those skills instead of ad-hoc feature work; specs live in `openspec/specs/`, active changes in `openspec/changes/`.
