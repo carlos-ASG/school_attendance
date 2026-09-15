@@ -3,6 +3,12 @@
 {% block title %}Mis Cursos — Panel del Profesor{% endblock %}
 
 {% block content %}
+    <c-breadcrumb>
+        <c-breadcrumb.item>
+            <c-icon.house class="size-4" aria-label="Panel"/>
+        </c-breadcrumb.item>
+    </c-breadcrumb>
+
     <h1>Mis Cursos</h1>
     <br>
     {% for course in courses %}

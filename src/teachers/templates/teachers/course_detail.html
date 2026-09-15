@@ -3,6 +3,14 @@
 {% block title %}{{ course.subject }} — Panel del Profesor{% endblock %}
 
 {% block content %}
+    <c-breadcrumb>
+        <c-breadcrumb.item href="{% url 'teachers:dashboard' %}">
+            <c-icon.house class="size-4"/>
+        </c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item>{{ course.subject }}</c-breadcrumb.item>
+    </c-breadcrumb>
+
     <c-badge>{{ course.subject }} - {{ course.student_group }}</c-badge>
     {% if course.classroom %}
         <c-badge variant="secondary"><strong>Salon:&nbsp;</strong> {{ course.classroom }}</c-badge>

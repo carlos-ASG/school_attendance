@@ -1,0 +1,12 @@
+<c-vars href class></c-vars>
+<li class="inline-flex items-center gap-1.5 {% if class %}{{ class }}{% endif %}">
+    {% if href %}
+        <a href="{{ href }}" class="block transition-colors hover:text-foreground" {{ attrs }}>
+            {{ slot }}
+        </a>
+    {% else %}
+        <span class="block text-foreground" aria-current="page" {{ attrs }}>
+            {{ slot }}
+        </span>
+    {% endif %}
+</li>

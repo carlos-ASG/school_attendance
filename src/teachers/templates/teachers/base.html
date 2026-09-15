@@ -10,7 +10,7 @@
     {% htmx_script %}
     <script defer src="{% static 'core-ui/js/alpine.min.js' %}"></script>
 </head>
-<body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
+<body class="bg-zinc-50 text-foreground" hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
     <c-navigation-menu class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <a href="{% url 'teachers:dashboard' %}" class="text-lg font-semibold text-foreground">Panel del Profesor</a>
         {% if request.user.is_authenticated %}

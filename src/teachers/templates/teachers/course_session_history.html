@@ -3,7 +3,16 @@
 {% block title %}{{ course.subject }} — Historial de sesiones — Panel del Profesor{% endblock %}
 
 {% block content %}
-    <p><a href="{% url 'teachers:course_detail' course.pk %}">&larr; Volver al curso</a></p>
+    <c-breadcrumb>
+        <c-breadcrumb.item href="{% url 'teachers:dashboard' %}">
+            <c-icon.house class="size-4"/>
+        </c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item href="{% url 'teachers:course_detail' course.pk %}">{{ course.subject }}</c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item>Historial de sesiones</c-breadcrumb.item>
+    </c-breadcrumb>
+
     <h1>{{ course.subject }} — Historial de sesiones</h1>
 
     <div id="session-create">
