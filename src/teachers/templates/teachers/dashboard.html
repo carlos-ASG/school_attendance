@@ -12,9 +12,9 @@
             </c-card.header>
 
             <c-card.content>
-                <p>{{ course.student_group }} — {{ course.student_count }} estudiante(s)</p>
+                <c-badge variant="secondary"><strong>Grupo:&nbsp;</strong> {{ course.student_group }}</c-badge>
                 {% if course.classroom %}
-                    <p><strong>Aula:</strong> {{ course.classroom }}</p>
+                    <c-badge variant="secondary"><strong>Salon:&nbsp;</strong> {{ course.classroom }}</c-badge>
                 {% endif %}
                 <table>
                     <thead>
@@ -27,7 +27,7 @@
                         {% for slot in course.schedule_slots.all %}
                             <tr>
                                 <td>{{ slot.get_weekday_display }}</td>
-                                <td>{{ slot.start_time }}–{{ slot.end_time }}</td>
+                                <td>{{ slot.start_time }}-{{ slot.end_time }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -37,36 +37,10 @@
             <c-card.footer>
                 <a href="{% url 'teachers:course_detail' course.pk %}"
                    class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90">
-                    Ver curso
+                   <c-icon.eye class="size-4 mr-1"/>&nbsp;Ver curso modo largo
                 </a>
             </c-card.footer>
         </c-card>
-
-        <div class="mb-4 grid grid-cols-2 gap-4">
-            <c-card>
-                <c-card.header>
-                    <c-card.title>Sesión de hoy</c-card.title>
-                </c-card.header>
-                <c-card.footer>
-                    <form method="post" action="{% url 'teachers:today_session_create' course.pk %}">
-                        {% csrf_token %}
-                        <c-button type="submit" class="w-full">Tomar asistencia</c-button>
-                    </form>
-                </c-card.footer>
-            </c-card>
-
-            <c-card>
-                <c-card.header>
-                    <c-card.title>Historial de sesiones</c-card.title>
-                </c-card.header>
-                <c-card.footer>
-                    <a href="{% url 'teachers:course_session_history' course.pk %}"
-                       class="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
-                        Ver historial
-                    </a>
-                </c-card.footer>
-            </c-card>
-        </div>
     {% empty %}
         <p>No tienes cursos asignados aún.</p>
     {% endfor %}

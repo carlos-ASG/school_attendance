@@ -47,34 +47,36 @@
                 <td>{{ session.date }}</td>
                 <td>{{ session.created_at }}</td>
                 <td>
-                    <a href="{% url 'teachers:session_detail' session.pk %}"
-                       class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
-                        Ver
-                    </a>
-                    <c-alert-dialog>
-                        <c-button variant="destructive" type="button">
-                            <c-alert-dialog.trigger>Eliminar</c-alert-dialog.trigger>
-                        </c-button>
+                    <div class="flex items-center gap-2">
+                        <a href="{% url 'teachers:session_detail' session.pk %}"
+                           class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
+                            <c-icon.eye/>
+                        </a>
+                        <c-alert-dialog>
+                            <c-button variant="destructive" type="button">
+                                <c-alert-dialog.trigger><c-icon.trash/></c-alert-dialog.trigger>
+                            </c-button>
 
-                        <c-alert-dialog.content>
-                            <c-alert-dialog.header>
-                                <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
-                                <c-alert-dialog.description>
-                                    Esta acción eliminará la sesión del {{ session.date }} y todos sus registros de asistencia. No se puede deshacer.
-                                </c-alert-dialog.description>
-                            </c-alert-dialog.header>
+                            <c-alert-dialog.content>
+                                <c-alert-dialog.header>
+                                    <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
+                                    <c-alert-dialog.description>
+                                        Esta acción eliminará la sesión del {{ session.date }} y todos sus registros de asistencia. No se puede deshacer.
+                                    </c-alert-dialog.description>
+                                </c-alert-dialog.header>
 
-                            <c-alert-dialog.footer>
-                                <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
-                                <c-alert-dialog.action variant="destructive"
-                                                       hx-post="{% url 'teachers:session_delete' session.pk %}"
-                                                       hx-target="#session-list"
-                                                       hx-swap="innerHTML">
-                                    Eliminar
-                                </c-alert-dialog.action>
-                            </c-alert-dialog.footer>
-                        </c-alert-dialog.content>
-                    </c-alert-dialog>
+                                <c-alert-dialog.footer>
+                                    <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
+                                    <c-alert-dialog.action variant="destructive"
+                                                           hx-post="{% url 'teachers:session_delete' session.pk %}"
+                                                           hx-target="#session-list"
+                                                           hx-swap="innerHTML">
+                                        Eliminar
+                                    </c-alert-dialog.action>
+                                </c-alert-dialog.footer>
+                            </c-alert-dialog.content>
+                        </c-alert-dialog>
+                    </div>
                 </td>
             </tr>
         {% empty %}

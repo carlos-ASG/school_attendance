@@ -3,28 +3,49 @@
 {% block title %}{{ course.subject }} — Panel del Profesor{% endblock %}
 
 {% block content %}
-    <h1>{{ course.subject }}</h1>
-    <p>
-        <strong>Grupo:</strong> {{ course.student_group }}
-        — {{ course.student_group.students.count }} estudiante(s)
-    </p>
+    <c-badge>{{ course.subject }} - {{ course.student_group }}</c-badge>
     {% if course.classroom %}
-        <p><strong>Aula:</strong> {{ course.classroom }}</p>
+        <c-badge variant="secondary"><strong>Salon:&nbsp;</strong> {{ course.classroom }}</c-badge>
     {% endif %}
+    <c-card class="mt-4">
+        <c-card.header>
+            <c-card.title><strong>Horario</strong></c-card.title>
+        </c-card.header>
+        <c-card.content>
+            <ul>
+                {% for slot in course.schedule_slots.all %}
+                    <li>{{ slot.get_weekday_display }}: {{ slot.start_time }}–{{ slot.end_time }}</li>
+                {% empty %}
+                    <li>Sin horario configurado.</li>
+                {% endfor %}
+            </ul>
+        </c-card.content>
+    </c-card>
 
-    <div class="card">
-        <h2>Horario</h2>
-        <ul>
-            {% for slot in course.schedule_slots.all %}
-                <li>{{ slot.get_weekday_display }} {{ slot.start_time }}–{{ slot.end_time }}</li>
-            {% empty %}
-                <li>Sin horario configurado.</li>
-            {% endfor %}
-        </ul>
-    </div>
+    <c-card class="mt-4">
+        <c-card.header>
+            <c-card.title>Sesión de hoy</c-card.title>
+        </c-card.header>
+        <c-card.footer>
+            <form method="post" action="{% url 'teachers:today_session_create' course.pk %}">
+                {% csrf_token %}
+                <c-button type="submit">Tomar asistencia</c-button>
+            </form>
+        </c-card.footer>
+    </c-card>
 
-    <div class="card">
-        <h2>Estudiantes</h2>
+    <p class="mt-4">
+        <a href="{% url 'teachers:course_session_history' course.pk %}"
+           class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
+            Historial de sesiones
+        </a>
+    </p>
+
+    <c-card class="mt-4">
+        <c-card.header>
+            <c-card.title><strong>{{ course.student_group.students.count }} estudiante(s)</strong></c-card.title>
+        </c-card.header>
+        <c-card.content>
         <table>
             <thead>
                 <tr>
@@ -45,24 +66,6 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
-
-    <c-card class="mt-4">
-        <c-card.header>
-            <c-card.title>Sesión de hoy</c-card.title>
-        </c-card.header>
-        <c-card.footer>
-            <form method="post" action="{% url 'teachers:today_session_create' course.pk %}">
-                {% csrf_token %}
-                <c-button type="submit">Tomar asistencia</c-button>
-            </form>
-        </c-card.footer>
+        </c-card.content>
     </c-card>
-
-    <p class="mt-4">
-        <a href="{% url 'teachers:course_session_history' course.pk %}"
-           class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
-            Historial de sesiones
-        </a>
-    </p>
 {% endblock %}
