@@ -717,8 +717,8 @@ class CourseDetailViewTests(TestCase):
 
         url = reverse('teachers:course_detail', args=[self.course.pk])
         response = self.client.get(url)
-        self.assertContains(response, '<th>Estudiante</th>')
-        self.assertContains(response, '<th>Asistencia</th>')
+        self.assertContains(response, 'Estudiante')
+        self.assertContains(response, 'Asistencia')
         self.assertContains(response, '1/2 (50.0%)')
         self.assertContains(response, '0/2 (0.0%)')
 

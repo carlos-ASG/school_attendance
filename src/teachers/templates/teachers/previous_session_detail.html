@@ -2,7 +2,7 @@
 
 {% block title %}{{ session.course.subject }} — {{ session.date }} — Panel del Profesor{% endblock %}
 
-{% block content %}
+{% block breadcrumb %}
     <c-breadcrumb>
         <c-breadcrumb.item href="{% url 'teachers:dashboard' %}">
             <c-icon.house class="size-4"/>
@@ -14,7 +14,9 @@
         <c-breadcrumb.separator/>
         <c-breadcrumb.item>{{ session.date }}</c-breadcrumb.item>
     </c-breadcrumb>
+{% endblock %}
 
+{% block content %}
     <div id="session-header">
         {% partial session_header %}
     </div>
@@ -40,39 +42,37 @@
       hx-target="#attendance-panel" hx-swap="innerHTML">
     {% csrf_token %}
     {{ formset.management_form }}
-    <table>
-    <thead>
-        <tr>
-            <th>Estudiante</th>
-            <th>Estado</th>
-            <th>Notas</th>
-        </tr>
-    </thead>
-    <tbody>
+    <c-table>
+    <c-table.header>
+        <c-table.head>Estudiante</c-table.head>
+        <c-table.head>Estado</c-table.head>
+        <c-table.head>Notas</c-table.head>
+    </c-table.header>
+    <c-table.body>
         {% for form in formset %}
-            <tr>
-                <td>{{ form.instance.student }}</td>
-                <td>
+            <c-table.row>
+                <c-table.cell>{{ form.instance.student }}</c-table.cell>
+                <c-table.cell>
                     {{ form.id }}
                     {{ form.status }}
                     {% if form.status.errors %}
                         <ul class="errorlist">{{ form.status.errors }}</ul>
                     {% endif %}
-                </td>
-                <td>
+                </c-table.cell>
+                <c-table.cell>
                     {{ form.notes }}
                     {% if form.notes.errors %}
                         <ul class="errorlist">{{ form.notes.errors }}</ul>
                     {% endif %}
-                </td>
-            </tr>
+                </c-table.cell>
+            </c-table.row>
         {% empty %}
-            <tr>
-                <td colspan="3">No hay registros de asistencia.</td>
-            </tr>
+            <c-table.row>
+                <c-table.cell colspan="3">No hay registros de asistencia.</c-table.cell>
+            </c-table.row>
         {% endfor %}
-    </tbody>
-</table>
+    </c-table.body>
+</c-table>
 
     <c-button type="submit">Guardar cambios</c-button>
     <a href="{% url 'teachers:session_detail' session.pk %}"
@@ -88,26 +88,24 @@
     {% endif %}
 </ul>
 
-<table>
-    <thead>
-        <tr>
-            <th>Estudiante</th>
-            <th>Estado</th>
-            <th>Notas</th>
-        </tr>
-    </thead>
-    <tbody>
+<c-table>
+    <c-table.header>
+        <c-table.head>Estudiante</c-table.head>
+        <c-table.head>Estado</c-table.head>
+        <c-table.head>Notas</c-table.head>
+    </c-table.header>
+    <c-table.body>
         {% for record in session.records.all %}
-            <tr>
-                <td>{{ record.student }}</td>
-                <td>{{ record.get_status_display }}</td>
-                <td>{{ record.notes|default:"—" }}</td>
-            </tr>
+            <c-table.row>
+                <c-table.cell>{{ record.student }}</c-table.cell>
+                <c-table.cell>{{ record.get_status_display }}</c-table.cell>
+                <c-table.cell>{{ record.notes|default:"—" }}</c-table.cell>
+            </c-table.row>
         {% empty %}
-            <tr>
-                <td colspan="3">No hay registros de asistencia.</td>
-            </tr>
+            <c-table.row>
+                <c-table.cell colspan="3">No hay registros de asistencia.</c-table.cell>
+            </c-table.row>
         {% endfor %}
-    </tbody>
-</table>
+    </c-table.body>
+</c-table>
 {% endpartialdef attendance_readonly %}

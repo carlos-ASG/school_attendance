@@ -1,0 +1,12 @@
+<c-vars class></c-vars>
+<thead class="ltr:text-left rtl:text-right" {{ attrs }}>
+    <tr class="
+        *:font-medium
+        *:text-gray-900
+        {% if class %}
+            {{ class }}
+        {% endif %}
+        ">
+        {{ slot }}
+    </tr>
+</thead>

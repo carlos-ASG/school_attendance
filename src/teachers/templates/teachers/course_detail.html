@@ -2,7 +2,7 @@
 
 {% block title %}{{ course.subject }} — Panel del Profesor{% endblock %}
 
-{% block content %}
+{% block breadcrumb %}
     <c-breadcrumb>
         <c-breadcrumb.item href="{% url 'teachers:dashboard' %}">
             <c-icon.house class="size-4"/>
@@ -10,7 +10,9 @@
         <c-breadcrumb.separator/>
         <c-breadcrumb.item>{{ course.subject }}</c-breadcrumb.item>
     </c-breadcrumb>
+{% endblock %}
 
+{% block content %}
     <c-badge>{{ course.subject }} - {{ course.student_group }}</c-badge>
     {% if course.classroom %}
         <c-badge variant="secondary"><strong>Salon:&nbsp;</strong> {{ course.classroom }}</c-badge>
@@ -54,26 +56,24 @@
             <c-card.title><strong>{{ course.student_group.students.count }} estudiante(s)</strong></c-card.title>
         </c-card.header>
         <c-card.content>
-        <table>
-            <thead>
-                <tr>
-                    <th>Estudiante</th>
-                    <th>Asistencia</th>
-                </tr>
-            </thead>
-            <tbody>
+        <c-table>
+            <c-table.header>
+                <c-table.head>Estudiante</c-table.head>
+                <c-table.head>Asistencia</c-table.head>
+            </c-table.header>
+            <c-table.body>
                 {% for student_pk, row in attendance.items %}
-                    <tr>
-                        <td>{{ row.student }}</td>
-                        <td>{{ row.attended }}/{{ row.total }} ({{ row.percentage }}%)</td>
-                    </tr>
+                    <c-table.row>
+                        <c-table.cell>{{ row.student }}</c-table.cell>
+                        <c-table.cell>{{ row.attended }}/{{ row.total }} ({{ row.percentage }}%)</c-table.cell>
+                    </c-table.row>
                 {% empty %}
-                    <tr>
-                        <td colspan="2">No hay estudiantes.</td>
-                    </tr>
+                    <c-table.row>
+                        <c-table.cell colspan="2">No hay estudiantes.</c-table.cell>
+                    </c-table.row>
                 {% endfor %}
-            </tbody>
-        </table>
+            </c-table.body>
+        </c-table>
         </c-card.content>
     </c-card>
 {% endblock %}

@@ -12,13 +12,8 @@
 </head>
 <body class="bg-zinc-50 text-foreground" hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
     <c-navigation-menu class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <a href="{% url 'teachers:dashboard' %}" class="text-lg font-semibold text-foreground">Panel del Profesor</a>
+        {% block breadcrumb %}{% endblock %}
         {% if request.user.is_authenticated %}
-            <c-navigation_menu.list class="items-center">
-                <c-navigation_menu.item>
-                    <c-navigation_menu.link href="{% url 'teachers:dashboard' %}" class="p-2">Panel</c-navigation_menu.link>
-                </c-navigation_menu.item>
-            </c-navigation_menu.list>
             <div class="flex items-center gap-3">
                 <span class="text-sm text-muted-foreground">{{ teacher_name|default:request.user.username }}</span>
                 <form method="post" action="{% url 'account_logout' %}" hx-boost="false">

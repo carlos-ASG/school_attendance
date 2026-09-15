@@ -2,7 +2,7 @@
 
 {% block title %}{{ course.subject }} — Historial de sesiones — Panel del Profesor{% endblock %}
 
-{% block content %}
+{% block breadcrumb %}
     <c-breadcrumb>
         <c-breadcrumb.item href="{% url 'teachers:dashboard' %}">
             <c-icon.house class="size-4"/>
@@ -12,7 +12,9 @@
         <c-breadcrumb.separator/>
         <c-breadcrumb.item>Historial de sesiones</c-breadcrumb.item>
     </c-breadcrumb>
+{% endblock %}
 
+{% block content %}
     <h1>{{ course.subject }} — Historial de sesiones</h1>
 
     <div id="session-create">
@@ -42,20 +44,18 @@
     </div>
 
     <div id="session-list">
-        {% partialdef session_list inline %}<table>
-    <thead>
-        <tr>
-            <th>Fecha</th>
-            <th>Creación</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
+        {% partialdef session_list inline %}<c-table>
+    <c-table.header>
+        <c-table.head>Fecha</c-table.head>
+        <c-table.head>Creación</c-table.head>
+        <c-table.head>Acciones</c-table.head>
+    </c-table.header>
+    <c-table.body>
         {% for session in sessions %}
-            <tr>
-                <td>{{ session.date }}</td>
-                <td>{{ session.created_at }}</td>
-                <td>
+            <c-table.row>
+                <c-table.cell>{{ session.date }}</c-table.cell>
+                <c-table.cell>{{ session.created_at }}</c-table.cell>
+                <c-table.cell>
                     <div class="flex items-center gap-2">
                         <a href="{% url 'teachers:session_detail' session.pk %}"
                            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
@@ -86,15 +86,15 @@
                             </c-alert-dialog.content>
                         </c-alert-dialog>
                     </div>
-                </td>
-            </tr>
+                </c-table.cell>
+            </c-table.row>
         {% empty %}
-            <tr>
-                <td colspan="3">Aún no hay sesiones registradas.</td>
-            </tr>
+            <c-table.row>
+                <c-table.cell colspan="3">Aún no hay sesiones registradas.</c-table.cell>
+            </c-table.row>
         {% endfor %}
-    </tbody>
-</table>
+    </c-table.body>
+</c-table>
 {% endpartialdef session_list %}
     </div>
 {% endblock %}

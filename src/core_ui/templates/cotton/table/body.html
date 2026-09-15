@@ -1,0 +1,13 @@
+<c-vars class></c-vars>
+<tbody class="
+    divide-y
+    divide-gray-200
+    *:even:bg-gray-100
+    {% if class %}
+        {{ class }}
+    {% endif %}
+    "
+    {{ attrs }}
+>
+    {{ slot }}
+</tbody>

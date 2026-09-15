@@ -2,15 +2,15 @@
 
 {% block title %}Mis Cursos — Panel del Profesor{% endblock %}
 
-{% block content %}
+{% block breadcrumb %}
     <c-breadcrumb>
         <c-breadcrumb.item>
             <c-icon.house class="size-4" aria-label="Panel"/>
         </c-breadcrumb.item>
     </c-breadcrumb>
+{% endblock %}
 
-    <h1>Mis Cursos</h1>
-    <br>
+{% block content %}
     {% for course in courses %}
         <c-card class="mb-4">
             <c-card.header>
@@ -22,22 +22,20 @@
                 {% if course.classroom %}
                     <c-badge variant="secondary"><strong>Salon:&nbsp;</strong> {{ course.classroom }}</c-badge>
                 {% endif %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Día</th>
-                            <th>Horario</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <c-table>
+                    <c-table.header>
+                        <c-table.head>Día</c-table.head>
+                        <c-table.head>Horario</c-table.head>
+                    </c-table.header>
+                    <c-table.body>
                         {% for slot in course.schedule_slots.all %}
-                            <tr>
-                                <td>{{ slot.get_weekday_display }}</td>
-                                <td>{{ slot.start_time }}-{{ slot.end_time }}</td>
-                            </tr>
+                            <c-table.row>
+                                <c-table.cell>{{ slot.get_weekday_display }}</c-table.cell>
+                                <c-table.cell>{{ slot.start_time }}-{{ slot.end_time }}</c-table.cell>
+                            </c-table.row>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </c-table.body>
+                </c-table>
             </c-card.content>
 
             <c-card.footer>
