@@ -4,7 +4,7 @@
   @click="hideDialog"
   variant="{{ variant }}"
   class="mt-2 sm:mt-0 {% if class %}{{ class }}{% endif %}"
-  {{ attrs }}
+  :attrs="attrs"
 >
   {{ slot }}
 </c-button>

@@ -46,11 +46,13 @@ INSTALLED_APPS = [
     'django_htmx',
     'django_cotton',
     'django_tailwind_cli',
+    'ninja',
     'core_ui',
     'allauth',
     'allauth.account',
     'school',
     'teachers',
+    'api',
     'django.forms',
 ]
 

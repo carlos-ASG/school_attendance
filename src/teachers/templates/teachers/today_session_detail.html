@@ -15,104 +15,168 @@
 {% endblock %}
 
 {% block content %}
-    <div id="session-header">
-        {% partial session_header %}
-    </div>
+    {% partial session_header %}
 
     <div id="attendance-panel">
-        {% partial attendance_panel %}
+        <div x-data="attendancePanel" @beforeunload.window="handleBeforeUnload($event)">
+            <form @submit.prevent="save">
+                <c-table>
+                    <c-table.header>
+                        <c-table.head>Estudiante</c-table.head>
+                        <c-table.head>Estado</c-table.head>
+                        <c-table.head>Notas</c-table.head>
+                    </c-table.header>
+                    <c-table.body>
+                        <template x-for="record in records" :key="record.id">
+                            <c-table.row>
+                                <c-table.cell x-text="record.student"></c-table.cell>
+                                <c-table.cell>
+                                    <button
+                                        type="button"
+                                        :id="'record-status-' + record.id"
+                                        :class="'status-btn status-' + record.status.toLowerCase()"
+                                        @click="cycle(record)"
+                                        x-text="statusLabels[record.status]"
+                                    ></button>
+                                </c-table.cell>
+                                <c-table.cell>
+                                    <c-textarea
+                                        rows="2"
+                                        placeholder="Nota opcional"
+                                        x-model="record.notes"
+                                        @change="markPending(record)"
+                                    ></c-textarea>
+                                </c-table.cell>
+                            </c-table.row>
+                        </template>
+                        <c-table.row x-cloak x-show="records.length === 0">
+                            <c-table.cell colspan="3">No hay registros de asistencia.</c-table.cell>
+                        </c-table.row>
+                    </c-table.body>
+                </c-table>
+
+                <div class="mt-4 flex items-center gap-3">
+                    <c-button type="submit" ::disabled="pendingCount === 0 || saving">Guardar cambios</c-button>
+                    <c-badge variant="secondary" x-cloak x-show="pendingCount > 0">
+                        <span x-text="pendingCount + ' sin guardar'"></span>
+                    </c-badge>
+                </div>
+            </form>
+
+            <div class="mt-6 flex justify-end">
+                <c-alert-dialog>
+                    <c-button variant="destructive" type="button">
+                        <c-alert-dialog.trigger>Eliminar sesión</c-alert-dialog.trigger>
+                    </c-button>
+
+                    <c-alert-dialog.content>
+                        <c-alert-dialog.header>
+                            <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
+                            <c-alert-dialog.description>
+                                Esta acción eliminará la sesión y todos sus registros de asistencia. No se puede deshacer.
+                            </c-alert-dialog.description>
+                        </c-alert-dialog.header>
+
+                        <c-alert-dialog.footer>
+                            <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
+                            <c-alert-dialog.action variant="destructive"
+                                                   hx-post="{% url 'teachers:session_delete' session.pk %}"
+                                                   hx-swap="none">
+                                Eliminar
+                            </c-alert-dialog.action>
+                        </c-alert-dialog.footer>
+                    </c-alert-dialog.content>
+                </c-alert-dialog>
+            </div>
+        </div>
     </div>
+
+    <c-toast id="toast-save-ok">
+        <c-toast.content title="Asistencia guardada" description="Los cambios de asistencia se han guardado correctamente."/>
+    </c-toast>
+    <c-toast id="toast-save-error">
+        <c-toast.content type="destructive" title="Error al guardar" description="No se pudo guardar la asistencia. Inténtalo de nuevo."/>
+    </c-toast>
+
+    {{ records|json_script:"attendance-records-data" }}
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('attendancePanel', () => ({
+                records: [],
+                pending: {},
+                saving: false,
+                statusLabels: {
+                    PRESENT: 'Presente',
+                    ABSENT: 'Ausente',
+                    LATE: 'Tarde',
+                    EXCUSED: 'Justificado',
+                },
+                statusCycle: {
+                    PRESENT: 'ABSENT',
+                    ABSENT: 'LATE',
+                    LATE: 'EXCUSED',
+                    EXCUSED: 'PRESENT',
+                },
+
+                init() {
+                    const data = document.getElementById('attendance-records-data');
+                    this.records = JSON.parse(data.textContent);
+                },
+
+                get pendingCount() {
+                    return Object.keys(this.pending).length;
+                },
+
+                cycle(record) {
+                    record.status = this.statusCycle[record.status] ?? 'PRESENT';
+                    this.markPending(record);
+                },
+
+                markPending(record) {
+                    this.pending[record.id] = {
+                        id: record.id,
+                        status: record.status,
+                        notes: record.notes,
+                    };
+                },
+
+                async save() {
+                    if (this.pendingCount === 0 || this.saving) return;
+                    this.saving = true;
+                    try {
+                        const response = await fetch('{{ save_url|escapejs }}', {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}',
+                            },
+                            body: JSON.stringify({ records: Object.values(this.pending) }),
+                        });
+                        if (!response.ok) {
+                            throw new Error('save failed');
+                        }
+                        this.pending = {};
+                        this.$dispatch('show-toast', 'toast-save-ok');
+                    } catch (error) {
+                        this.$dispatch('show-toast', 'toast-save-error');
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+
+                handleBeforeUnload(event) {
+                    if (this.pendingCount > 0) {
+                        event.preventDefault();
+                        event.returnValue = '';
+                    }
+                },
+            }));
+        });
+    </script>
 {% endblock %}
 {% partialdef session_header %}<h1>{{ session.course.subject }} — {{ session.date }}</h1>
 <p>
     <strong>Grupo:</strong> {{ session.course.student_group }}<br>
     <strong>Creada por:</strong> {{ session.created_by }}
 </p>
-{% endpartialdef session_header %}{% partialdef attendance_panel %}<ul class="messages">
-    {% if messages %}
-        {% for message in messages %}
-            <li class="{{ message.tags }}">{{ message }}</li>
-        {% endfor %}
-    {% endif %}
-</ul>
-
-<div class="flex items-end justify-between gap-4">
-<form method="post"
-      hx-post="{% url 'teachers:today_session_detail' session.pk %}"
-      hx-target="#attendance-panel" hx-swap="innerHTML">
-    {% csrf_token %}
-    {{ formset.management_form }}
-    <c-table>
-    <c-table.header>
-        <c-table.head>Estudiante</c-table.head>
-        <c-table.head>Estado</c-table.head>
-        <c-table.head>Notas</c-table.head>
-    </c-table.header>
-    <c-table.body>
-        {% for form in formset %}
-            <c-table.row>
-                <c-table.cell>{{ form.instance.student }}</c-table.cell>
-                <c-table.cell>
-                    {{ form.id }}
-                    {% with record=form.instance %}{% partial record_status_button %}{% endwith %}
-                </c-table.cell>
-                <c-table.cell>
-                    {{ form.notes }}
-                    {% if form.notes.errors %}
-                        <ul class="errorlist">{{ form.notes.errors }}</ul>
-                    {% endif %}
-                </c-table.cell>
-            </c-table.row>
-        {% empty %}
-            <c-table.row>
-                <c-table.cell colspan="3">No hay registros de asistencia.</c-table.cell>
-            </c-table.row>
-        {% endfor %}
-    </c-table.body>
-</c-table>
-
-    <c-button type="submit">Guardar notas</c-button>
-</form>
-
-<c-alert-dialog>
-    <c-button variant="destructive" type="button">
-        <c-alert-dialog.trigger>Eliminar sesión</c-alert-dialog.trigger>
-    </c-button>
-
-    <c-alert-dialog.content>
-        <c-alert-dialog.header>
-            <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
-            <c-alert-dialog.description>
-                Esta acción eliminará la sesión y todos sus registros de asistencia. No se puede deshacer.
-            </c-alert-dialog.description>
-        </c-alert-dialog.header>
-
-        <c-alert-dialog.footer>
-            <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
-            <c-alert-dialog.action variant="destructive"
-                                   hx-post="{% url 'teachers:session_delete' session.pk %}"
-                                   hx-swap="none">
-                Eliminar
-            </c-alert-dialog.action>
-        </c-alert-dialog.footer>
-    </c-alert-dialog.content>
-</c-alert-dialog>
-</div>
-
-{% endpartialdef attendance_panel %}{% partialdef record_status_button %}<button
-    id="record-status-{{ record.pk }}"
-    type="button"
-    class="status-btn status-{{ record.status|lower }}"
-    hx-post="{% url 'teachers:record_toggle_status' record.pk %}"
-    hx-target="this"
-    hx-swap="outerHTML">
-    {{ record.get_status_display }}
-</button>
-{% if errors %}
-    <ul class="errorlist">
-        {% for field, msgs in errors.items %}
-            {% for msg in msgs %}<li>{{ msg }}</li>{% endfor %}
-        {% endfor %}
-    </ul>
-{% endif %}
-{% endpartialdef record_status_button %}
+{% endpartialdef session_header %}

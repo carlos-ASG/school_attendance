@@ -1,6 +1,6 @@
-<c-vars class></c-vars>
+<c-vars class rows="4"></c-vars>
 <textarea
     {{ attrs }}
-    rows="4"
+    rows="{{ rows }}"
     class="mt-0.5 w-full resize-none rounded-xs border-gray-300 shadow-sm sm:text-sm {% if class %}{{ class }}{% endif %}"
 >{{ slot }}</textarea>

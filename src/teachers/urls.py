@@ -24,9 +24,4 @@ urlpatterns = [
     ),
     path('sessions/<int:pk>/', views.PreviousSessionDetailView.as_view(), name='session_detail'),
     path('sessions/<int:pk>/delete/', views.SessionDeleteView.as_view(), name='session_delete'),
-    path(
-        'records/<int:pk>/toggle-status/',
-        views.RecordToggleStatusView.as_view(),
-        name='record_toggle_status',
-    ),
 ]

@@ -31,15 +31,6 @@ class SessionForm(forms.Form):
         return date
 
 
-AttendanceFormSet = forms.modelformset_factory(
-    AttendanceRecord,
-    fields=('notes',),
-    widgets={
-        'notes': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Nota opcional'}),
-    },
-    extra=0,
-)
-
 AttendanceEditFormSet = forms.modelformset_factory(
     AttendanceRecord,
     fields=('status', 'notes'),

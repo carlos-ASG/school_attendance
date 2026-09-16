@@ -422,10 +422,14 @@ class TodaySessionDetailViewTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'status-btn')
-        self.assertContains(response, 'Guardar notas')
+        self.assertContains(response, 'Guardar cambios')
+        self.assertContains(response, 'x-data="attendancePanel"')
+        self.assertContains(response, 'attendance-records-data')
+        self.assertContains(response, reverse('api:update_session_records', args=[session.pk]))
         self.assertNotContains(response, '?edit=1')
 
-    def test_save_notes_htmx(self):
+    def test_post_no_longer_saves(self):
+        """Per-action save was removed: the page is GET-only (batch save via API)."""
         session = self.make_today_session()
         record = session.records.first()
         url = reverse('teachers:today_session_detail', args=[session.pk])
@@ -438,85 +442,11 @@ class TodaySessionDetailViewTests(TestCase):
             'form-0-notes': 'Llegó tarde',
         }
         response = self.client.post(url, data, HTTP_HX_REQUEST='true')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 405)
         record.refresh_from_db()
-        self.assertEqual(record.notes, 'Llegó tarde')
-
-    def test_save_notes_without_htmx_redirects(self):
-        session = self.make_today_session()
-        record = session.records.first()
-        url = reverse('teachers:today_session_detail', args=[session.pk])
-        data = {
-            'form-TOTAL_FORMS': '1',
-            'form-INITIAL_FORMS': '1',
-            'form-MIN_NUM_FORMS': '0',
-            'form-MAX_NUM_FORMS': '1000',
-            'form-0-id': str(record.pk),
-            'form-0-notes': 'Sin HTMX',
-        }
-        response = self.client.post(url, data)
-        self.assertEqual(response.status_code, 302)
-        record.refresh_from_db()
-        self.assertEqual(record.notes, 'Sin HTMX')
+        self.assertEqual(record.notes, '')
 
 
-class RecordToggleStatusViewTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.group = StudentGroup.objects.create(name='Grupo Test')
-        cls.student = Student.objects.create(
-            first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
-        )
-        cls.group.students.add(cls.student)
-        cls.teacher_user = User.objects.create_user('profe1', password='pass')
-        cls.other_user = User.objects.create_user('profe2', password='pass')
-        cls.teacher = Teacher.objects.create(
-            first_name='Ana', last_name='García', user=cls.teacher_user
-        )
-        Teacher.objects.create(
-            first_name='Luis', last_name='Martínez', user=cls.other_user
-        )
-        cls.subject = Subject.objects.create(name='Ciencias')
-        cls.course = Course.objects.create(
-            student_group=cls.group, teacher=cls.teacher, subject=cls.subject
-        )
-
-    def setUp(self):
-        self.client.force_login(self.teacher_user)
-
-    def make_today_session(self):
-        session = AttendanceSession.objects.create(
-            course=self.course, date=days_from_today(0), created_by=self.teacher
-        )
-        create_attendance_records(session)
-        return session
-
-    def test_toggle_advances_status(self):
-        session = self.make_today_session()
-        record = session.records.first()
-        url = reverse('teachers:record_toggle_status', args=[record.pk])
-        self.client.post(url)
-        record.refresh_from_db()
-        self.assertEqual(record.status, AttendanceRecord.Status.ABSENT)
-
-    def test_toggle_returns_only_button_fragment(self):
-        session = self.make_today_session()
-        record = session.records.first()
-        url = reverse('teachers:record_toggle_status', args=[record.pk])
-        response = self.client.post(url, HTTP_HX_REQUEST='true')
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'record-status-')
-        self.assertNotContains(response, '<table')
-
-    def test_other_teacher_cannot_toggle(self):
-        session = self.make_today_session()
-        record = session.records.first()
-        self.client.force_login(self.other_user)
-        url = reverse('teachers:record_toggle_status', args=[record.pk])
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, 403)
-        record.refresh_from_db()
-        self.assertEqual(record.status, AttendanceRecord.Status.PRESENT)
 
 
 class SessionDeleteViewTests(TestCase):

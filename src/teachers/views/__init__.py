@@ -5,7 +5,6 @@ from .dashboard import DashboardView
 from .mixins import TeacherRequiredMixin, get_teacher, session_detail_url
 from .session_detail import PreviousSessionDetailView
 from .today_session import (
-    RecordToggleStatusView,
     TodaySessionCreateView,
     TodaySessionDetailView,
 )
@@ -19,7 +18,6 @@ __all__ = [
     'TodaySessionDetailView',
     'PreviousSessionDetailView',
     'SessionDeleteView',
-    'RecordToggleStatusView',
     'TeacherRequiredMixin',
     'get_teacher',
     'session_detail_url',
