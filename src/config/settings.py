@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'school',
     'teachers',
+    'django.forms',
 ]
 
 MIDDLEWARE = [
@@ -163,6 +164,12 @@ TAILWIND_CLI_DIST_CSS = 'core-ui/css/output.css'
 # Test discovery for apps living under src/ (tests.py inside each app package)
 
 TEST_RUNNER = 'config.test_runner.SrcLayoutDiscoverRunner'
+
+
+# Form widget templates: resolve from app template dirs so core_ui can override
+# django/forms/widgets/*.html (all default Textareas render via <c-textarea>)
+
+FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
 
 
 # Django Unfold admin theme
