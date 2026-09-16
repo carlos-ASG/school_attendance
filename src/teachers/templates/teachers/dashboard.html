@@ -11,41 +11,50 @@
 {% endblock %}
 
 {% block content %}
-    {% for course in courses %}
-        <c-card class="mb-4">
-            <c-card.header>
-                <c-card.title>{{ course.subject }}</c-card.title>
-            </c-card.header>
+    <c-layout.surface>
+        <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <h1 class="text-3xl font-semibold tracking-tight">Mis Cursos</h1>
+            <span class="text-sm text-muted-foreground">
+                {{ courses|length }} {% if courses|length == 1 %}curso{% else %}cursos{% endif %} asignados
+            </span>
+        </div>
 
-            <c-card.content>
-                <c-badge variant="secondary"><strong>Grupo:&nbsp;</strong> {{ course.student_group }}</c-badge>
-                {% if course.classroom %}
-                    <c-badge variant="secondary"><strong>Salon:&nbsp;</strong> {{ course.classroom }}</c-badge>
-                {% endif %}
-                <c-table>
-                    <c-table.header>
-                        <c-table.head>Día</c-table.head>
-                        <c-table.head>Horario</c-table.head>
-                    </c-table.header>
-                    <c-table.body>
-                        {% for slot in course.schedule_slots.all %}
-                            <c-table.row>
-                                <c-table.cell>{{ slot.get_weekday_display }}</c-table.cell>
-                                <c-table.cell>{{ slot.start_time }}-{{ slot.end_time }}</c-table.cell>
-                            </c-table.row>
-                        {% endfor %}
-                    </c-table.body>
-                </c-table>
-            </c-card.content>
+        {% for course in courses %}
+            <c-card>
+                <c-card.header>
+                    <c-card.title>{{ course.subject }}</c-card.title>
+                </c-card.header>
 
-            <c-card.footer>
-                <a href="{% url 'teachers:course_detail' course.pk %}"
-                   class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90">
-                   <c-icon.eye class="size-4 mr-1"/>&nbsp;Ver curso modo largo
-                </a>
-            </c-card.footer>
-        </c-card>
-    {% empty %}
-        <p>No tienes cursos asignados aún.</p>
-    {% endfor %}
+                <c-card.content>
+                    <c-badge variant="secondary"><strong>Grupo:&nbsp;</strong> {{ course.student_group }}</c-badge>
+                    {% if course.classroom %}
+                        <c-badge variant="secondary"><strong>Salon:&nbsp;</strong> {{ course.classroom }}</c-badge>
+                    {% endif %}
+                    <c-table>
+                        <c-table.header>
+                            <c-table.head>Día</c-table.head>
+                            <c-table.head>Horario</c-table.head>
+                        </c-table.header>
+                        <c-table.body>
+                            {% for slot in course.schedule_slots.all %}
+                                <c-table.row>
+                                    <c-table.cell>{{ slot.get_weekday_display }}</c-table.cell>
+                                    <c-table.cell>{{ slot.start_time }}-{{ slot.end_time }}</c-table.cell>
+                                </c-table.row>
+                            {% endfor %}
+                        </c-table.body>
+                    </c-table>
+                </c-card.content>
+
+                <c-card.footer>
+                    <a href="{% url 'teachers:course_detail' course.pk %}"
+                       class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90">
+                       <c-icon.eye class="size-4 mr-1"/>&nbsp;Ver curso modo largo
+                    </a>
+                </c-card.footer>
+            </c-card>
+        {% empty %}
+            <p>No tienes cursos asignados aún.</p>
+        {% endfor %}
+    </c-layout.surface>
 {% endblock %}

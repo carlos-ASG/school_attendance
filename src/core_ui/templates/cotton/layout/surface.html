@@ -1,0 +1,8 @@
+<c-vars class></c-vars>
+<div class="w-full" {{ attrs }}>
+    <div class="h-full bg-sidebar ring-1 ring-foreground/10 p-2.5 rounded-xl min-h-[85vh] {% if class %}{{ class }}{% endif %}">
+        <div class="rounded-xl bg-background shadow-md p-6 flex flex-col gap-6 h-full">
+            {{ slot }}
+        </div>
+    </div>
+</div>
