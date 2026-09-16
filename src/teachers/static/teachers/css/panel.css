@@ -5,25 +5,13 @@
     --text: #1e293b;
 }
 
-* {
-    box-sizing: border-box;
-}
-
 [x-cloak] {
     display: none !important;
 }
 
 body {
-    margin: 0;
     font-family: system-ui, sans-serif;
     color: var(--text);
-    background: var(--bg);
-}
-
-main {
-    max-width: 60rem;
-    margin: 1.5rem auto;
-    padding: 0 1rem;
 }
 
 .messages {

@@ -1,0 +1,17 @@
+<c-vars class></c-vars>
+<aside class="flex h-screen w-16 flex-col justify-between border-e border-border bg-background {% if class %}{{ class }}{% endif %}" {{ attrs }}>
+    <div>
+        {% if brand %}
+            {{ brand }}
+            <div class="mx-2 border-t border-border"></div>
+        {% endif %}
+        <ul class="space-y-1 px-2 {% if brand %}pt-4{% endif %}">
+            {{ slot }}
+        </ul>
+    </div>
+    {% if footer %}
+        <div class="sticky inset-x-0 bottom-0 border-t border-border bg-background p-2">
+            {{ footer }}
+        </div>
+    {% endif %}
+</aside>

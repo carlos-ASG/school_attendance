@@ -1,0 +1,12 @@
+<c-vars href="#" tooltip icon active></c-vars>
+<li>
+    <a href="{{ href }}"
+       aria-label="{{ tooltip }}"
+       class="group relative grid place-content-center rounded-lg px-4 py-2 {% if active %}bg-muted text-foreground{% else %}text-muted-foreground transition-colors hover:bg-muted hover:text-foreground{% endif %}"
+       {{ attrs }}>
+        <c-component is="icon.{{ icon }}" class="size-5" />
+        <span class="invisible absolute start-full top-1/2 z-50 ms-4 -translate-y-1/2 whitespace-nowrap rounded-sm bg-popover px-2 py-1.5 text-xs font-medium text-popover-foreground shadow-sm group-hover:visible">
+            {{ tooltip }}
+        </span>
+    </a>
+</li>
