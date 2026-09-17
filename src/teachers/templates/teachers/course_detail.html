@@ -62,24 +62,13 @@
                 <c-card.title>{{ course.student_group.students.count }} estudiante(s)</c-card.title>
             </c-card.header>
             <c-card.content>
-                <c-table>
-                    <c-table.header>
-                        <c-table.head>Estudiante</c-table.head>
-                        <c-table.head>Asistencia</c-table.head>
-                    </c-table.header>
-                    <c-table.body>
-                        {% for student_pk, row in attendance.items %}
-                            <c-table.row>
-                                <c-table.cell>{{ row.student }}</c-table.cell>
-                                <c-table.cell>{{ row.attended }}/{{ row.total }} ({{ row.percentage }}%)</c-table.cell>
-                            </c-table.row>
-                        {% empty %}
-                            <c-table.row>
-                                <c-table.cell colspan="2">No hay estudiantes.</c-table.cell>
-                            </c-table.row>
-                        {% endfor %}
-                    </c-table.body>
-                </c-table>
+                <c-detail_list header_label="Estudiante" header_value="Asistencia">
+                    {% for student_pk, row in attendance.items %}
+                        <c-detail_list.item label="{{ row.student }}">{{ row.attended }}/{{ row.total }} ({{ row.percentage }}%)</c-detail_list.item>
+                    {% empty %}
+                        <c-detail_list.item>No hay estudiantes.</c-detail_list.item>
+                    {% endfor %}
+                </c-detail_list>
             </c-card.content>
         </c-card>
     </c-layout.surface>

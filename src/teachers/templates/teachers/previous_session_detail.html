@@ -17,26 +17,59 @@
 {% endblock %}
 
 {% block content %}
-    <div id="session-header">
-        {% partial session_header %}
-    </div>
+    <c-layout.surface>
+        <c-slot name="header">
+            {% partial session_header %}
+        </c-slot>
 
-    <div id="attendance-panel">
-        {% if edit_mode %}
-            {% partial attendance_edit_form %}
-        {% else %}
-            {% partial attendance_readonly %}
-        {% endif %}
-    </div>
+        <div id="attendance-panel">
+            {% if edit_mode %}
+                {% partial attendance_edit_form %}
+            {% else %}
+                {% partial attendance_readonly %}
+            {% endif %}
+        </div>
+    </c-layout.surface>
 {% endblock %}
-{% partialdef session_header %}<h1>{{ session.course.subject }} — {{ session.date }}</h1>
-<p>
-    <strong>Grupo:</strong> {{ session.course.student_group }}<br>
-    <strong>Creada por:</strong> {{ session.created_by }}
-</p>
-{% if not edit_mode %}
-    <p><a href="?edit=1">Editar</a></p>
-{% endif %}
+{% partialdef session_header %}<div class="flex flex-col gap-1">
+    <h2 class="text-xl font-semibold tracking-tight">{{ session.course.subject }} — {{ session.date }}</h2>
+    <p class="text-sm text-muted-foreground">
+        {{ session.course.student_group }} · Creada por {{ session.created_by }}
+    </p>
+</div>
+
+<div class="flex items-center gap-2">
+    {% if not edit_mode %}
+        <a href="?edit=1"
+           aria-label="Editar sesión"
+           class="inline-flex size-9 items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring">
+            <c-icon.square-pen class="size-4"/>
+        </a>
+    {% endif %}
+
+    <c-alert-dialog>
+        <c-button variant="destructive" type="button" aria-label="Eliminar sesión">
+            <c-alert-dialog.trigger><c-icon.trash class="size-4"/></c-alert-dialog.trigger>
+        </c-button>
+
+        <c-alert-dialog.content>
+            <c-alert-dialog.header>
+                <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
+                <c-alert-dialog.description>
+                    Esta acción eliminará la sesión del {{ session.date }} y todos sus registros de asistencia. No se puede deshacer.
+                </c-alert-dialog.description>
+            </c-alert-dialog.header>
+
+            <c-alert-dialog.footer>
+                <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
+                <form method="post" action="{% url 'teachers:session_delete' session.pk %}">
+                    {% csrf_token %}
+                    <c-alert-dialog.action type="submit" variant="destructive">Eliminar</c-alert-dialog.action>
+                </form>
+            </c-alert-dialog.footer>
+        </c-alert-dialog.content>
+    </c-alert-dialog>
+</div>
 {% endpartialdef session_header %}{% partialdef attendance_edit_form %}<form method="post"
       hx-post="{% url 'teachers:session_detail' session.pk %}"
       hx-target="#attendance-panel" hx-swap="innerHTML">

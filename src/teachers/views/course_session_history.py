@@ -65,7 +65,7 @@ class CourseSessionHistoryView(TeacherRequiredMixin, ListView):
                 'teachers/course_session_history.html#session_create_form',
                 context,
             )
-            return retarget(response, '#session-create')
+            return retarget(response, '#session-form')
         return render(request, self.template_name, context)
 
 

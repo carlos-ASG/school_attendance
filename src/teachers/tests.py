@@ -251,7 +251,7 @@ class CourseSessionHistoryViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'no puede ser posterior')
         self.assertIn('HX-Retarget', response.headers)
-        self.assertEqual(response.headers['HX-Retarget'], '#session-create')
+        self.assertEqual(response.headers['HX-Retarget'], '#session-form')
 
     def test_create_htmx_success_redirects_via_hx_redirect(self):
         url = reverse('teachers:course_session_history', args=[self.course.pk])

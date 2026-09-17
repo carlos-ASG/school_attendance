@@ -15,86 +15,71 @@
 {% endblock %}
 
 {% block content %}
-    <h1>{{ course.subject }} — Historial de sesiones</h1>
+    <c-layout.surface>
+        <c-slot name="header">
+            <div class="flex flex-col gap-1">
+                <h2 class="text-xl font-semibold tracking-tight">{{ course.subject }} — Historial de sesiones</h2>
+                <p class="text-sm text-muted-foreground">{{ course.student_group }}</p>
+            </div>
 
-    <div id="session-create">
-        {% partialdef session_create_form inline %}
-        <c-card class="mb-4">
-            <c-card.header>
-                <c-card.title>Crear sesión en otra fecha</c-card.title>
-            </c-card.header>
-            <c-card.content>
-                <form method="post"
-                      hx-post="{% url 'teachers:course_session_history' course.pk %}"
-                      hx-target="#session-create" hx-swap="innerHTML"
-                      class="flex items-end gap-3">
-                    {% csrf_token %}
-                    <div>
-                        {{ form.date.label_tag }}
-                        {{ form.date }}
-                        {% if form.date.errors %}
-                            <ul class="errorlist">{{ form.date.errors }}</ul>
-                        {% endif %}
+            <c-dialog default_open="{{ form.errors|yesno:'true,false' }}">
+                <c-button type="button" aria-label="Crear sesión en otra fecha">
+                    <c-dialog.trigger>
+                        <c-icon.plus class="size-4"/>
+                    </c-dialog.trigger>
+                </c-button>
+
+                <c-dialog.content>
+                    <c-dialog.header>
+                        <c-dialog.title>Crear sesión en otra fecha</c-dialog.title>
+                        <c-dialog.description>
+                            Registra una sesión de {{ course.subject }} para una fecha anterior a hoy. Se crearán los registros de asistencia.
+                        </c-dialog.description>
+                    </c-dialog.header>
+
+                    <div id="session-form">
+                        {% partialdef session_create_form inline %}
+                        <form method="post"
+                              hx-post="{% url 'teachers:course_session_history' course.pk %}"
+                              hx-target="#session-form" hx-swap="innerHTML"
+                              class="flex flex-col gap-4">
+                            {% csrf_token %}
+                            <div class="flex flex-col gap-2">
+                                <c-label for="{{ form.date.id_for_label }}">Fecha</c-label>
+                                {{ form.date }}
+                                {% if form.date.errors %}
+                                    <ul class="errorlist text-sm text-destructive">{{ form.date.errors }}</ul>
+                                {% endif %}
+                            </div>
+
+                            <c-dialog.footer>
+                                <c-dialog.close variant="outline">Cancelar</c-dialog.close>
+                                <c-button type="submit">Crear sesión</c-button>
+                            </c-dialog.footer>
+                        </form>
+                        {% endpartialdef session_create_form %}
                     </div>
-                    <c-button type="submit">Crear sesión</c-button>
-                </form>
-            </c-card.content>
-        </c-card>
-        {% endpartialdef session_create_form %}
-    </div>
+                </c-dialog.content>
+            </c-dialog>
+        </c-slot>
 
-    <div id="session-list">
-        {% partialdef session_list inline %}<c-table>
-    <c-table.header>
-        <c-table.head>Fecha</c-table.head>
-        <c-table.head>Creación</c-table.head>
-        <c-table.head>Acciones</c-table.head>
-    </c-table.header>
-    <c-table.body>
-        {% for session in sessions %}
-            <c-table.row>
-                <c-table.cell>{{ session.date }}</c-table.cell>
-                <c-table.cell>{{ session.created_at }}</c-table.cell>
-                <c-table.cell>
-                    <div class="flex items-center gap-2">
-                        <a href="{% url 'teachers:session_detail' session.pk %}"
-                           class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
-                            <c-icon.eye/>
-                        </a>
-                        <c-alert-dialog>
-                            <c-button variant="destructive" type="button">
-                                <c-alert-dialog.trigger><c-icon.trash/></c-alert-dialog.trigger>
-                            </c-button>
-
-                            <c-alert-dialog.content>
-                                <c-alert-dialog.header>
-                                    <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
-                                    <c-alert-dialog.description>
-                                        Esta acción eliminará la sesión del {{ session.date }} y todos sus registros de asistencia. No se puede deshacer.
-                                    </c-alert-dialog.description>
-                                </c-alert-dialog.header>
-
-                                <c-alert-dialog.footer>
-                                    <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
-                                    <c-alert-dialog.action variant="destructive"
-                                                           hx-post="{% url 'teachers:session_delete' session.pk %}"
-                                                           hx-target="#session-list"
-                                                           hx-swap="innerHTML">
-                                        Eliminar
-                                    </c-alert-dialog.action>
-                                </c-alert-dialog.footer>
-                            </c-alert-dialog.content>
-                        </c-alert-dialog>
-                    </div>
-                </c-table.cell>
-            </c-table.row>
-        {% empty %}
-            <c-table.row>
-                <c-table.cell colspan="3">Aún no hay sesiones registradas.</c-table.cell>
-            </c-table.row>
-        {% endfor %}
-    </c-table.body>
-</c-table>
+        <div id="session-list">
+            {% partialdef session_list inline %}<c-detail_list header_label="Fecha" header_value="Creación">
+    {% for session in sessions %}
+        <c-detail_list.item>
+            <c-slot name="label_slot">
+                <a href="{% url 'teachers:session_detail' session.pk %}"
+                   class="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-indigo-600 underline decoration-slate-300 decoration-2 underline-offset-4 transition-colors hover:text-indigo-700 hover:decoration-indigo-500 focus-visible:ring-4 focus-visible:ring-indigo-200 focus-visible:outline-none">
+                    {{ session.date }}
+                </a>
+            </c-slot>
+            {{ session.created_at }}
+        </c-detail_list.item>
+    {% empty %}
+        <c-detail_list.item>Aún no hay sesiones registradas.</c-detail_list.item>
+    {% endfor %}
+</c-detail_list>
 {% endpartialdef session_list %}
-    </div>
+        </div>
+    </c-layout.surface>
 {% endblock %}
