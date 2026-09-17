@@ -26,7 +26,7 @@
 
 - [x] 5.1 Run `uv run manage.py tailwind build` and confirm no classes silently dropped (check `bg-background` and `size-4` present in `src/core_ui/static/core-ui/css/output.css`)
 - [x] 5.2 Run `uv run manage.py check` (minimum repo verification)
-- [ ] 5.3 Manual verification pass in the browser (`uv run manage.py runserver`, login as `teacher1` / dev data): given the panel in light theme, when clicking the toggle, then the page turns dark with no reload, the icon swaps sun → moon-star, and reloading keeps dark with no light flash; clicking again returns to light with the sun icon and reloads stay light; borders, cards, body, and message banners are legible in both themes
+- [x] 5.3 Manual verification pass in the browser (`uv run manage.py runserver`, login as `teacher1` / dev data): given the panel in light theme, when clicking the toggle, then the page turns dark with no reload, the icon swaps sun → moon-star, and reloading keeps dark with no light flash; clicking again returns to light with the sun icon and reloads stay light; borders, cards, body, and message banners are legible in both themes
 
 ## 6. Dark-theme adaptation of design-system components
 
@@ -35,4 +35,4 @@
 - [x] 6.3 Create `cotton/quiet_text.html`: single-file link component with semantic quiet-link styling (`text-primary`, `decoration-border decoration-2 underline-offset-4`, `hover:text-primary/80`, `hover:decoration-primary/70`, `focus-visible:ring-4 focus-visible:ring-ring/25`), `href`/`hx-*` passing through `{{ attrs }}`
 - [x] 6.4 Replace the inline light-only `<a>` in `course_session_history.html` (inside the `session_list` partialdef) with `<c-quiet_text href="{% url 'teachers:session_detail' session.pk %}">`
 - [x] 6.5 Run `uv run manage.py tailwind build --force`, `uv run manage.py check`, and a render smoke test (dashboard, history, both session pages) asserting no `gray-200/gray-900/gray-100` remains in table markup and `<c-quiet_text>` renders as `<a>` with intact `href`
-- [ ] 6.6 Manual dark-mode pass in the browser: zebra rows, dividers, header/body text, and the quiet date link are legible on dashboard, course history, and both session-detail pages
+- [x] 6.6 Manual dark-mode pass in the browser: zebra rows, dividers, header/body text, and the quiet date link are legible on dashboard, course history, and both session-detail pages
