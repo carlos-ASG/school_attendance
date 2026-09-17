@@ -1,5 +1,8 @@
+from typing import Any
+
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.db.models import QuerySet
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
@@ -20,12 +23,12 @@ class PreviousSessionDetailView(TeacherRequiredMixin, DetailView):
     template_name = 'teachers/previous_session_detail.html'
     context_object_name = 'session'
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[AttendanceSession]:
         return AttendanceSession.objects.filter(course__teacher=self.teacher).select_related(
             'course__subject', 'course__student_group', 'created_by'
         )
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
         if self.object.date == timezone.now().date():
             return HttpResponseRedirect(
@@ -34,7 +37,7 @@ class PreviousSessionDetailView(TeacherRequiredMixin, DetailView):
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['edit_mode'] = self.request.GET.get('edit') == '1'
         if context['edit_mode']:
@@ -43,7 +46,7 @@ class PreviousSessionDetailView(TeacherRequiredMixin, DetailView):
             )
         return context
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
         if self.object.date == timezone.now().date():
             return HttpResponseRedirect(
@@ -73,7 +76,7 @@ class PreviousSessionDetailView(TeacherRequiredMixin, DetailView):
             return retarget(response, '#attendance-panel')
         return self.render_to_response(context)
 
-    def _render_readonly(self, request):
+    def _render_readonly(self, request: HttpRequest) -> HttpResponse:
         return render(
             request,
             'teachers/previous_session_detail.html#attendance_readonly',

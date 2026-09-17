@@ -1,5 +1,8 @@
+from typing import Any
+
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.db.models import QuerySet
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -15,7 +18,7 @@ from school.models import (
 from .mixins import TeacherRequiredMixin
 
 
-def serialize_records(session):
+def serialize_records(session: AttendanceSession) -> list[dict[str, Any]]:
     """Serialize a session's records for the Alpine attendance panel."""
     return [
         {
@@ -31,7 +34,7 @@ def serialize_records(session):
 class TodaySessionCreateView(TeacherRequiredMixin, View):
     """POST-only: get-or-create today's session for a course, then redirect (D4)."""
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         course = get_object_or_404(
             Course.objects.filter(teacher=self.teacher), pk=kwargs['pk']
         )
@@ -54,12 +57,12 @@ class TodaySessionDetailView(TeacherRequiredMixin, DetailView):
     template_name = 'teachers/today_session_detail.html'
     context_object_name = 'session'
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[AttendanceSession]:
         return AttendanceSession.objects.filter(course__teacher=self.teacher).select_related(
             'course__subject', 'course__student_group', 'created_by'
         )
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
         if self.object.date != timezone.now().date():
             return HttpResponseRedirect(
@@ -68,7 +71,7 @@ class TodaySessionDetailView(TeacherRequiredMixin, DetailView):
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['records'] = serialize_records(self.object)
         context['save_url'] = reverse(

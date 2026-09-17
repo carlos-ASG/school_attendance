@@ -1,3 +1,4 @@
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.views import View
 
@@ -5,7 +6,7 @@ from django.views import View
 
 
 class HomeRedirectView(View):
-    def get(self, request):
+    def get(self, request: HttpRequest) -> HttpResponse:
         if not request.user.is_authenticated:
             return redirect('account_login')
         if request.user.is_staff:

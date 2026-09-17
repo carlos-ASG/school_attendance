@@ -16,7 +16,7 @@ class Student(models.Model):
         verbose_name = 'Estudiante'
         verbose_name_plural = 'Estudiantes'
 
-    def __str__(self):
+    def __str__(self) -> str:
         surnames = f'{self.paternal_surname} {self.maternal_surname}'.strip()
         return f'{surnames}, {self.first_name}'
 
@@ -38,7 +38,7 @@ class Teacher(models.Model):
         verbose_name = 'Profesor'
         verbose_name_plural = 'Profesores'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.first_name} {self.last_name}'
 
 
@@ -51,7 +51,7 @@ class Subject(models.Model):
         verbose_name = 'Materia'
         verbose_name_plural = 'Materias'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
@@ -66,7 +66,7 @@ class StudentGroup(models.Model):
         verbose_name = 'Grupo de estudiantes'
         verbose_name_plural = 'Grupos de estudiantes'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
@@ -96,7 +96,7 @@ class Course(models.Model):
         verbose_name = 'Curso'
         verbose_name_plural = 'Cursos'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.subject} — {self.teacher} ({self.student_group})'
 
 
@@ -128,7 +128,7 @@ class ClassSchedule(models.Model):
         verbose_name = 'Horario de clase'
         verbose_name_plural = 'Horarios de clase'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.course}: {self.get_weekday_display()} {self.start_time}-{self.end_time}'
 
 
@@ -153,10 +153,10 @@ class AttendanceSession(models.Model):
         verbose_name = 'Sesión de asistencia'
         verbose_name_plural = 'Sesiones de asistencia'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.course} — {self.date}'
 
-    def clean(self):
+    def clean(self) -> None:
         super().clean()
         if self.date and self.date > timezone.now().date():
             raise ValidationError({'date': 'La fecha no puede ser posterior a hoy.'})
@@ -191,10 +191,10 @@ class AttendanceRecord(models.Model):
         verbose_name = 'Registro de asistencia'
         verbose_name_plural = 'Registros de asistencia'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.student}: {self.status} ({self.session})'
 
-    def clean(self):
+    def clean(self) -> None:
         super().clean()
         if self.session_id and self.student_id:
             group = self.session.course.student_group

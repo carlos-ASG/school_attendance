@@ -1,16 +1,26 @@
 {% load static django_htmx %}
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es"
+      x-data="{
+          dark: localStorage.getItem('theme') === 'dark',
+          toggleTheme() {
+              this.dark = !this.dark;
+              localStorage.setItem('theme', this.dark ? 'dark' : 'light');
+          }
+      }"
+      :class="dark && 'dark'"
+      @toggle-theme.window="toggleTheme()">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>document.documentElement.classList.toggle('dark', localStorage.getItem('theme') === 'dark')</script>
     <title>{% block title %} Panel del Profesor{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'core-ui/css/output.css' %}">
     <link rel="stylesheet" href="{% static 'teachers/css/panel.css' %}">
     {% htmx_script %}
     <script defer src="{% static 'core-ui/js/alpine.min.js' %}"></script>
 </head>
-<body class="bg-zinc-50 text-foreground" hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
+<body class="bg-background text-foreground" hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
     <div class="flex h-screen">
         <c-sidebar>
             <c-slot name="brand">
@@ -35,7 +45,14 @@
                     {% block breadcrumb %}{% endblock %}
                 </div>
                 {% if request.user.is_authenticated %}
-                    <span class="text-sm text-muted-foreground">{{ teacher_name|default:request.user.username }}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-muted-foreground">{{ teacher_name|default:request.user.username }}</span>
+                        <c-button variant="ghost" type="button" size="icon" aria-label="Cambiar tema"
+                                  @click="$dispatch('toggle-theme')">
+                            <c-icon.sun x-show="!dark" class="size-4" />
+                            <c-icon.moon_star x-show="dark" x-cloak class="size-4" />
+                        </c-button>
+                    </div>
                 {% endif %}
             </c-topbar>
 

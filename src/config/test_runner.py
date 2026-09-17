@@ -1,4 +1,6 @@
 import importlib.util
+from typing import Any
+from unittest import TestSuite
 
 from django.apps import apps
 from django.test.runner import DiscoverRunner
@@ -7,7 +9,9 @@ from django.test.runner import DiscoverRunner
 class SrcLayoutDiscoverRunner(DiscoverRunner):
     """Discover tests in app packages that live under src/."""
 
-    def build_suite(self, test_labels=None, **kwargs):
+    def build_suite(
+        self, test_labels: list[str] | None = None, **kwargs: Any
+    ) -> TestSuite:
         if not test_labels:
             test_labels = [
                 f'{app_config.name}.tests'

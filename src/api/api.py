@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.http import HttpRequest
 from django.utils import timezone
 from ninja import NinjaAPI
 from ninja.errors import HttpError
@@ -24,7 +25,9 @@ api = NinjaAPI(
     '/sessions/{session_id}/records',
     response={200: list[AttendanceRecordOut], 422: AttendanceUpdateError},
 )
-def update_session_records(request, session_id: int, payload: AttendanceRecordBulkIn):
+def update_session_records(
+    request: HttpRequest, session_id: int, payload: AttendanceRecordBulkIn
+) -> list[AttendanceRecordOut] | tuple[int, AttendanceUpdateError]:
     session = AttendanceSession.objects.filter(
         pk=session_id, course__teacher=request.auth
     ).first()

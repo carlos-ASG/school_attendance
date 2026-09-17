@@ -17,13 +17,13 @@ from school.models import (
 )
 
 
-def days_from_today(days):
+def days_from_today(days: int) -> str:
     return (timezone.now().date() + timedelta(days=days)).isoformat()
 
 
 class TodaySessionCreateViewTests(TestCase):
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.group = StudentGroup.objects.create(name='Grupo Test')
         cls.student = Student.objects.create(
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
@@ -45,7 +45,7 @@ class TodaySessionCreateViewTests(TestCase):
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
     def test_create_today_session_redirects_to_today_detail(self):
@@ -104,7 +104,7 @@ class TodaySessionCreateViewTests(TestCase):
 
 class SessionUrlGuardTests(TestCase):
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.group = StudentGroup.objects.create(name='Grupo Test')
         cls.student = Student.objects.create(
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
@@ -119,10 +119,10 @@ class SessionUrlGuardTests(TestCase):
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
-    def make_session(self, date):
+    def make_session(self, date: str) -> AttendanceSession:
         session = AttendanceSession.objects.create(
             course=self.course, date=date, created_by=self.teacher
         )
@@ -163,7 +163,7 @@ class SessionUrlGuardTests(TestCase):
 
 class CourseSessionHistoryViewTests(TestCase):
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.group = StudentGroup.objects.create(name='Grupo Test')
         cls.student = Student.objects.create(
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
@@ -178,7 +178,7 @@ class CourseSessionHistoryViewTests(TestCase):
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
     def test_list_excludes_today_session(self):
@@ -286,7 +286,7 @@ class CourseSessionHistoryViewTests(TestCase):
 
 class PreviousSessionDetailViewTests(TestCase):
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.group = StudentGroup.objects.create(name='Grupo Test')
         cls.student = Student.objects.create(
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
@@ -301,17 +301,19 @@ class PreviousSessionDetailViewTests(TestCase):
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
-    def make_session(self, date=None):
+    def make_session(self, date: str | None = None) -> AttendanceSession:
         session = AttendanceSession.objects.create(
             course=self.course, date=date or days_from_today(-1), created_by=self.teacher
         )
         create_attendance_records(session)
         return session
 
-    def formset_data(self, session, **overrides):
+    def formset_data(
+        self, session: AttendanceSession, **overrides: str
+    ) -> dict[str, str]:
         record = session.records.first()
         data = {
             'form-TOTAL_FORMS': '1',
@@ -391,7 +393,7 @@ class PreviousSessionDetailViewTests(TestCase):
 
 class TodaySessionDetailViewTests(TestCase):
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.group = StudentGroup.objects.create(name='Grupo Test')
         cls.student = Student.objects.create(
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
@@ -406,10 +408,10 @@ class TodaySessionDetailViewTests(TestCase):
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
-    def make_today_session(self):
+    def make_today_session(self) -> AttendanceSession:
         session = AttendanceSession.objects.create(
             course=self.course, date=days_from_today(0), created_by=self.teacher
         )
@@ -451,7 +453,7 @@ class TodaySessionDetailViewTests(TestCase):
 
 class SessionDeleteViewTests(TestCase):
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.group = StudentGroup.objects.create(name='Grupo Test')
         cls.student = Student.objects.create(
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
@@ -466,10 +468,10 @@ class SessionDeleteViewTests(TestCase):
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
-    def make_session(self, date):
+    def make_session(self, date: str) -> AttendanceSession:
         session = AttendanceSession.objects.create(
             course=self.course, date=date, created_by=self.teacher
         )
@@ -530,7 +532,7 @@ class SessionDeleteViewTests(TestCase):
 
 class CourseDetailViewTests(TestCase):
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.group = StudentGroup.objects.create(name='Grupo Asistencia')
         cls.student_a = Student.objects.create(
             first_name='Ana', paternal_surname='Pérez', maternal_surname='López'
@@ -549,17 +551,19 @@ class CourseDetailViewTests(TestCase):
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
-    def make_session(self, date=None):
+    def make_session(self, date: str | None = None) -> AttendanceSession:
         session = AttendanceSession.objects.create(
             course=self.course, date=date or days_from_today(-1), created_by=self.teacher
         )
         create_attendance_records(session)
         return session
 
-    def set_status(self, session, student, status):
+    def set_status(
+        self, session: AttendanceSession, student: Student, status: str
+    ) -> None:
         record = session.records.get(student=student)
         record.status = status
         record.save(update_fields=['status'])
@@ -655,7 +659,7 @@ class CourseDetailViewTests(TestCase):
 
 class DashboardViewTests(TestCase):
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.group = StudentGroup.objects.create(name='Grupo Dash')
         cls.student = Student.objects.create(
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
@@ -670,7 +674,7 @@ class DashboardViewTests(TestCase):
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
     def test_dashboard_renders_quick_access_cards(self):

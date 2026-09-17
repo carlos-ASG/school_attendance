@@ -1,9 +1,14 @@
 from datetime import date, timedelta
+from typing import Any
 
 from django import forms
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.forms.models import BaseInlineFormSet
+from django.http import HttpRequest
 from django.urls import path
+from django.urls.resolvers import URLPattern
 from django.views.generic import TemplateView
 from import_export.admin import ImportExportModelAdmin
 from unfold.admin import ModelAdmin, TabularInline
@@ -54,7 +59,7 @@ class StudentGroupAdmin(ModelAdmin):
     filter_horizontal = ('students',)
 
     @admin.display(description='Estudiantes')
-    def student_count(self, obj):
+    def student_count(self, obj: Student) -> int:
         return obj.students.count()
 
 
@@ -71,7 +76,7 @@ class CourseAdmin(ModelAdmin):
     inlines = [ClassScheduleInline]
 
     @admin.display(description='Estudiantes')
-    def student_count(self, obj):
+    def student_count(self, obj: Course) -> int:
         return obj.student_group.students.count()
 
 
@@ -79,7 +84,9 @@ class AttendanceRecordInline(TabularInline):
     model = AttendanceRecord
     extra = 0
 
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+    def formfield_for_foreignkey(
+        self, db_field: models.Field, request: HttpRequest, **kwargs: Any
+    ) -> forms.Field:
         if db_field.name == 'student':
             session = self.get_session(request)
             if session is None:
@@ -88,7 +95,7 @@ class AttendanceRecordInline(TabularInline):
                 kwargs['queryset'] = session.course.student_group.students.all()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
-    def get_session(self, request):
+    def get_session(self, request: HttpRequest) -> AttendanceSession | None:
         try:
             object_id = request.resolver_match.kwargs.get('object_id')
         except (AttributeError, KeyError):
@@ -119,7 +126,7 @@ class ReportsView(UnfoldModelAdminViewMixin, TemplateView):
     title = 'Reportes de asistencia'
     permission_required = ()
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
 
         today = date.today()
@@ -153,7 +160,7 @@ class AttendanceSessionAdmin(ModelAdmin):
     list_filter = ('course', 'date', 'created_by')
     inlines = [AttendanceRecordInline]
 
-    def get_urls(self):
+    def get_urls(self) -> list[URLPattern]:
         return [
             path(
                 'reports/',
@@ -162,7 +169,13 @@ class AttendanceSessionAdmin(ModelAdmin):
             ),
         ] + super().get_urls()
 
-    def save_related(self, request, form, formsets, change):
+    def save_related(
+        self,
+        request: HttpRequest,
+        form: forms.ModelForm,
+        formsets: list[BaseInlineFormSet],
+        change: bool,
+    ) -> None:
         super().save_related(request, form, formsets, change)
         create_attendance_records(form.instance)
 

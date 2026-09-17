@@ -1,7 +1,10 @@
+from datetime import date
+from typing import Any
+
 from django import forms
 from django.utils import timezone
 
-from school.models import AttendanceRecord, AttendanceSession
+from school.models import AttendanceRecord, AttendanceSession, Course
 
 
 class SessionForm(forms.Form):
@@ -13,11 +16,11 @@ class SessionForm(forms.Form):
         localize=False,
     )
 
-    def __init__(self, *args, course=None, **kwargs):
+    def __init__(self, *args: Any, course: Course | None = None, **kwargs: Any) -> None:
         self.course = course
         super().__init__(*args, **kwargs)
 
-    def clean_date(self):
+    def clean_date(self) -> date:
         date = self.cleaned_data['date']
         today = timezone.now().date()
         if date > today:

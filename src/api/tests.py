@@ -1,12 +1,15 @@
 import json
-from datetime import timedelta
+from datetime import date, timedelta
+from typing import Any
 
 from django.contrib.auth.models import User
+from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from school.models import (
+    AttendanceRecord,
     AttendanceSession,
     Course,
     Student,
@@ -17,15 +20,15 @@ from school.models import (
 )
 
 
-def days_from_today(days):
-    return (timezone.now().date() + timedelta(days=days))
+def days_from_today(days: int) -> date:
+    return timezone.now().date() + timedelta(days=days)
 
 
 class AttendanceApiTests(TestCase):
     """Spec: attendance-api — session-cookie auth and bulk record updates."""
 
     @classmethod
-    def setUpTestData(cls):
+    def setUpTestData(cls) -> None:
         cls.group = StudentGroup.objects.create(name='Grupo Test')
         cls.student = Student.objects.create(
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
@@ -64,13 +67,15 @@ class AttendanceApiTests(TestCase):
         )
         create_attendance_records(cls.other_teacher_session)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
-    def url(self, session):
+    def url(self, session: AttendanceSession) -> str:
         return reverse('api:update_session_records', args=[session.pk])
 
-    def patch(self, session, records, **extra):
+    def patch(
+        self, session: AttendanceSession, records: list[dict[str, Any]], **extra: Any
+    ) -> HttpResponse:
         return self.client.patch(
             self.url(session),
             data=json.dumps({'records': records}),
@@ -78,7 +83,9 @@ class AttendanceApiTests(TestCase):
             **extra,
         )
 
-    def record(self, session, student):
+    def record(
+        self, session: AttendanceSession, student: Student
+    ) -> AttendanceRecord:
         return session.records.get(student=student)
 
     def test_teacher_updates_records(self):

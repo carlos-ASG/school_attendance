@@ -17,7 +17,9 @@ from .models import (
 )
 
 
-def make_course_data(group_name):
+def make_course_data(
+    group_name: str,
+) -> tuple[StudentGroup, Student, Student, Teacher, Course]:
     group = StudentGroup.objects.create(name=group_name)
     insider = Student.objects.create(
         first_name='Ana', paternal_surname='Pérez', maternal_surname='López'
@@ -35,7 +37,7 @@ def make_course_data(group_name):
 
 
 class AttendanceRecordCleanTests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         _, self.insider, self.outsider, self.teacher, self.course = make_course_data(
             'Grupo Clean'
         )
@@ -56,7 +58,7 @@ class AttendanceRecordCleanTests(TestCase):
 
 
 class AttendanceSessionCleanTests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         _, _, _, self.teacher, self.course = make_course_data('Grupo Sesiones')
 
     def test_future_date_raises_validation_error(self):
@@ -88,7 +90,7 @@ class AttendanceSessionCleanTests(TestCase):
 
 
 class AttendanceRecordInlineTests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         _, self.insider, self.outsider, self.teacher, self.course = make_course_data(
             'Grupo Inline'
         )

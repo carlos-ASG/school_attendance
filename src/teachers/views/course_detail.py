@@ -1,4 +1,6 @@
-from django.db.models import Count
+from typing import Any
+
+from django.db.models import Count, QuerySet
 from django.views.generic import DetailView
 
 from school.models import AttendanceRecord, Course
@@ -18,19 +20,19 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
     template_name = 'teachers/course_detail.html'
     context_object_name = 'course'
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Course]:
         return (
             Course.objects.filter(teacher=self.teacher)
             .select_related('subject', 'teacher', 'student_group')
             .prefetch_related('student_group__students', 'schedule_slots')
         )
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['attendance'] = self.get_attendance_summary()
         return context
 
-    def get_attendance_summary(self):
+    def get_attendance_summary(self) -> dict[int, dict[str, Any]]:
         """Return a lookup dict keyed by student pk with attendance summary.
 
         Counts PRESENT, LATE and EXCUSED records as attended, using the total

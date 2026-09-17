@@ -1,11 +1,9 @@
 from django.http import HttpRequest
 from ninja.errors import HttpError
 from ninja.security import SessionAuth
-from typing import Optional
-
-from teachers.views.mixins import get_teacher
 
 from school.models import Teacher
+from teachers.views.mixins import get_teacher
 
 
 class TeacherSessionAuth(SessionAuth):
@@ -16,7 +14,7 @@ class TeacherSessionAuth(SessionAuth):
     On success the Teacher instance is stored in request.auth.
     """
 
-    def authenticate(self, request: HttpRequest, token: Optional[str]) -> Optional[Teacher]:
+    def authenticate(self, request: HttpRequest, token: str | None) -> Teacher | None:
         if not request.user.is_authenticated:
             return None
         teacher = get_teacher(request)

@@ -1,4 +1,6 @@
 """Preload development data into the database (idempotent)."""
+from typing import Any
+
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
@@ -55,7 +57,7 @@ STUDENTS_PER_GROUP = 5
 class Command(BaseCommand):
     help = 'Preload development data (users, teachers, students, groups, subjects, courses, schedules)'
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         self.create_superuser()
         teachers = self.create_teachers()
         groups = self.create_student_groups()
@@ -64,7 +66,7 @@ class Command(BaseCommand):
         self.create_attendance(courses)
         self.stdout.write(self.style.SUCCESS('Dev data preloaded successfully.'))
 
-    def create_superuser(self):
+    def create_superuser(self) -> None:
         User = get_user_model()
         user, created = User.objects.get_or_create(
             username='admin',
@@ -83,7 +85,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write('Superuser "admin" already exists, skipped.')
 
-    def create_teachers(self):
+    def create_teachers(self) -> dict[str, Teacher]:
         User = get_user_model()
         teachers = {}
         for data in TEACHERS:
@@ -110,7 +112,7 @@ class Command(BaseCommand):
             self.stdout.write(f'{action} teacher "{data["username"]}".')
         return teachers
 
-    def create_student_groups(self):
+    def create_student_groups(self) -> dict[str, StudentGroup]:
         groups = {}
         for index, name in enumerate(GROUPS):
             group, created = StudentGroup.objects.get_or_create(name=name)
@@ -130,7 +132,7 @@ class Command(BaseCommand):
             self.stdout.write(f'{action} student group "{name}" ({len(group_students)} students).')
         return groups
 
-    def create_subjects(self):
+    def create_subjects(self) -> dict[str, Subject]:
         subjects = {}
         for data in SUBJECTS:
             subject, _ = Subject.objects.get_or_create(
@@ -141,7 +143,12 @@ class Command(BaseCommand):
         self.stdout.write(f'Ensured {len(SUBJECTS)} subjects.')
         return subjects
 
-    def create_courses(self, groups, subjects, teachers):
+    def create_courses(
+        self,
+        groups: dict[str, StudentGroup],
+        subjects: dict[str, Subject],
+        teachers: dict[str, Teacher],
+    ) -> list[Course]:
         courses = []
         for group_name, subject_name, teacher_username, classroom, slots in COURSES:
             course, created = Course.objects.get_or_create(
@@ -162,7 +169,7 @@ class Command(BaseCommand):
             self.stdout.write(f'{action} course {course} ({len(slots)} schedule slots).')
         return courses
 
-    def create_attendance(self, courses):
+    def create_attendance(self, courses: list[Course]) -> None:
         from datetime import date, timedelta
 
         sessions_created = 0
