@@ -34,15 +34,31 @@ The teacher panel SHALL use django-allauth (on top of Django's authentication sy
 - **THEN** reset instructions are sent (console email backend in development) and the password can be set through the styled allauth flow
 
 ### Requirement: Panel navigation menu
-The panel chrome SHALL render a navigation menu built with the design-system navigation-menu component, showing the logged-in user's name, the panel destinations relevant to the user's role, and the logout control submitted as a POST form. All navigation menu text SHALL be in Spanish.
+The panel chrome SHALL render a collapsible sidebar built with the design-system sidebar components: a collapsed icon rail by default, expandable to an expanded sidebar showing icon and label via a toggle control with the `panel_left` icon in the topbar. The sidebar SHALL show a single navigation item — Home — linking to the panel dashboard and highlighted as active only while on it, and SHALL present the logout control in its footer submitted as a POST form. The expanded/collapsed choice SHALL persist across page loads in the browser. All navigation text SHALL be in Spanish, and the topbar SHALL show the logged-in user's name.
 
-#### Scenario: Teacher sees the navigation menu
+#### Scenario: Teacher sees the sidebar navigation
 - **WHEN** an authenticated Teacher opens any panel page
-- **THEN** the page chrome shows the navigation menu in Spanish with the panel destinations and the logout control
+- **THEN** the page chrome shows the collapsed sidebar rail with the Home item in Spanish and the logout control in the footer
+
+#### Scenario: Teacher expands and collapses the sidebar
+- **WHEN** the Teacher presses the topbar toggle control with the `panel_left` icon
+- **THEN** the sidebar alternates between the collapsed icon rail (icons with hover tooltips) and the expanded sidebar (icons with visible labels)
+
+#### Scenario: Sidebar state persists across navigation
+- **WHEN** the Teacher expands the sidebar and then navigates to another panel page or reloads
+- **THEN** the sidebar renders expanded (and collapsed likewise when saved collapsed)
+
+#### Scenario: Home item navigates to the dashboard
+- **WHEN** the Teacher clicks the Home item in the sidebar from any panel page
+- **THEN** they reach the panel dashboard, where the Home item is highlighted as active; on other pages it is not
+
+#### Scenario: Teacher logs out from the sidebar
+- **WHEN** the Teacher presses the "Cerrar sesión" control in the sidebar footer
+- **THEN** a POST request logs them out and they are returned to the account login page
 
 #### Scenario: Anonymous visitor has no panel navigation
 - **WHEN** an unauthenticated user opens the account login page
-- **THEN** the page renders without the panel navigation menu
+- **THEN** the page renders without the panel sidebar or topbar chrome
 
 ### Requirement: Post-login routing by role
 After login, the system SHALL route users by role: users who are staff SHALL be directed to the Django admin site, and teacher users SHALL be directed to the teacher panel.
@@ -66,12 +82,99 @@ The panel dashboard SHALL list only the Courses of the logged-in Teacher, showin
 - **WHEN** a Teacher requests the panel page of another teacher's Course
 - **THEN** the system denies access
 
+### Requirement: Dashboard session quick-access cards
+The dashboard SHALL render, under each course card, a row of two compact cards: "Sesión de hoy" and "Historial de sesiones". The "Sesión de hoy" card SHALL have no body content and a single footer button that get-or-creates today's session for that course and navigates the Teacher to the today session page. The "Historial de sesiones" card SHALL navigate to that course's session history page.
+
+#### Scenario: Teacher starts today's session from the dashboard
+- **WHEN** the Teacher clicks the "Sesión de hoy" card button for a course with no session today
+- **THEN** a session for today is created with attendance records for the group and the Teacher is taken to the today session page
+
+#### Scenario: Today's session already exists when using the dashboard card
+- **WHEN** the Teacher clicks the "Sesión de hoy" card button and a session for today already exists
+- **THEN** no duplicate session is created and the Teacher is taken to the existing session's today page
+
+#### Scenario: Teacher opens the history from the dashboard
+- **WHEN** the Teacher clicks the "Historial de sesiones" card for a course
+- **THEN** the Teacher is taken to that course's session history page
+
+### Requirement: Session detail pages split by date
+The panel SHALL provide two separate session detail pages: a today session page at `sessions/<pk>/today/`, reachable from the dashboard and course detail "Sesión de hoy" cards, and a previous session page at `sessions/<pk>/`, reachable from the history page's "Ver" action. Each page SHALL guard by date: requesting the today page for a session not dated today SHALL redirect to the previous session page, and requesting the previous page for a session dated today SHALL redirect to the today page. The session history list SHALL NOT include the course's session dated today.
+
+#### Scenario: Today session opened via the previous URL
+- **WHEN** the Teacher opens `sessions/<pk>/` for a session dated today
+- **THEN** they are redirected to `sessions/<pk>/today/`
+
+#### Scenario: Past session opened via the today URL
+- **WHEN** the Teacher opens `sessions/<pk>/today/` for a session not dated today
+- **THEN** they are redirected to `sessions/<pk>/`
+
+#### Scenario: Today's session is not listed in the history
+- **WHEN** the Teacher opens the session history page of a course that has a session dated today
+- **THEN** the today session does not appear in the session list
+
+#### Scenario: A today session appears in the history the next day
+- **WHEN** the Teacher opens the session history page on a date after a session's date
+- **THEN** that session is listed in the history
+
+### Requirement: Attendance recording on the today session page
+The today session page SHALL render the attendance editing interface by default: one row per student with a cyclic status button and a notes field. Status changes SHALL persist immediately per action via HTMX without a full page reload. Notes SHALL be saved by submitting the form, which re-renders the attendance panel in place with a confirmation and without a full page reload.
+
+#### Scenario: Today's session opens in editing mode
+- **WHEN** the Teacher opens the today session page
+- **THEN** every student of the course's group is listed with an interactive status button and a notes field, with no extra action required
+
+#### Scenario: Teacher saves notes on the today session page
+- **WHEN** the Teacher enters notes and submits the form
+- **THEN** the notes are stored and the attendance panel re-renders in place with a success confirmation
+
+### Requirement: Past session review and correction
+The previous session page SHALL render the session's records read-only by default, listing every student with their current status and note. The page SHALL offer an "Editar" control that enables a batch edit form: one row per student with a status selector (combobox or select) offering the four statuses and a notes field. No change SHALL be persisted until the Teacher submits the form; submitting SHALL save all rows at once and return the page to the read-only view with a confirmation.
+
+#### Scenario: Past session opens read-only
+- **WHEN** the Teacher opens the previous session page of a session dated before today
+- **THEN** every student is listed with their current status and note shown read-only and no editing controls are rendered
+
+#### Scenario: Teacher enables editing on a past session
+- **WHEN** the Teacher clicks the "Editar" control on the previous session page
+- **THEN** a batch edit form renders with one row per student, each with a status selector and a notes field
+
+#### Scenario: Status selector offers the four statuses in Spanish
+- **WHEN** the Teacher opens a status selector on the batch edit form
+- **THEN** the options are exactly Presente, Ausente, Tarde, Justificado
+
+#### Scenario: Teacher submits the batch edit form
+- **WHEN** the Teacher changes one or more statuses or notes and submits the form
+- **THEN** all changes are persisted together and the read-only view re-renders in place with a success confirmation
+
+#### Scenario: Teacher exits editing without submitting
+- **WHEN** the Teacher leaves edit mode without submitting the form
+- **THEN** no status or note changes are persisted
+
+### Requirement: Session deletion from the panel
+The panel SHALL allow the Teacher to delete an Attendance Session from the history page's "Acciones" column and from the today session page. Both delete controls SHALL require confirmation through an alert dialog before the deletion is submitted. Deleting a past session from the history page SHALL remove the session and its records and re-render the session list in place without a full page reload. Deleting a today session from the today session page SHALL remove the session and its records and redirect the Teacher to the course detail page.
+
+#### Scenario: Teacher deletes a past session from the history
+- **WHEN** the Teacher confirms the deletion of a past session from the history page's "Acciones" column
+- **THEN** the session and its records are removed and the session list re-renders in place without the deleted session
+
+#### Scenario: Teacher deletes the last session of a course from the history
+- **WHEN** the Teacher confirms the deletion of the course's only listed session
+- **THEN** the re-rendered session list shows the empty state
+
+#### Scenario: Teacher deletes a today session from the today page
+- **WHEN** the Teacher confirms the deletion of a session dated today from the today session page
+- **THEN** the session and its records are removed and the Teacher is redirected to the course detail page
+
+#### Scenario: Deletion is cancelled
+- **WHEN** the Teacher dismisses the delete confirmation dialog without confirming
+- **THEN** no session is removed
+
 ### Requirement: Course sessions page
-The panel SHALL provide a dedicated page per Course, reachable from the course detail page, that lists the Course's Attendance Sessions most recent first, links each session to its session detail page, and hosts the create-session form. The page SHALL be restricted to the Course's Teacher, SHALL provide a way to return to the course detail page, and the session list SHALL NOT include edit or delete controls.
+The panel SHALL provide a dedicated page per Course, reachable from the course detail page and the dashboard's "Historial de sesiones" card, that lists the Course's Attendance Sessions most recent first, excluding the session dated today. The page SHALL host a "Crear sesión en otra fecha" form at the top, and the session list SHALL show each session's date, creation timestamp, and an "Acciones" column with a "Ver" control linking to the previous session page and an "Eliminar" control behind a confirmation dialog. The page SHALL be restricted to the Course's Teacher and SHALL provide a way to return to the course detail page.
 
 #### Scenario: Teacher opens the sessions page
 - **WHEN** the Teacher opens the sessions page of one of their Courses
-- **THEN** the page lists the course's sessions most recent first, each linking to its session detail page, and shows the create-session form
+- **THEN** the page lists the course's past sessions most recent first with date, creation timestamp, and "Acciones" (Ver, Eliminar), excludes the session dated today, and shows the "Crear sesión en otra fecha" form at the top
 
 #### Scenario: Teacher opens the sessions page of another teacher's course
 - **WHEN** a Teacher requests the sessions page of another teacher's Course
@@ -82,11 +185,11 @@ The panel SHALL provide a dedicated page per Course, reachable from the course d
 - **THEN** the page provides a link back to the course detail page
 
 ### Requirement: Course detail view
-The panel SHALL provide a detail page per Course showing the Subject, the physical classroom, the schedule slots, the Student Group's members in a table, and the list of that Course's attendance sessions (most recent first), with a way to create a new session. The student table SHALL include a column showing each student's attendance summary.
+The panel SHALL provide a detail page per Course showing the Subject, the physical classroom, the schedule slots, and the Student Group's members in a table. The student table SHALL include a column showing each student's attendance summary. The page SHALL show a "Sesión de hoy" card that get-or-creates today's session and navigates to the today session page, and SHALL provide a link to the Course's session history page. The page SHALL NOT host a create-session form for other dates.
 
 #### Scenario: Teacher opens a course
 - **WHEN** the Teacher opens one of their Courses
-- **THEN** the page shows subject, physical classroom, schedule, student members in a table, each student's attendance summary, and the course's sessions
+- **THEN** the page shows subject, physical classroom, schedule, the student members table with attendance summaries, the "Sesión de hoy" card, and a link to the session history page
 
 #### Scenario: Teacher sees attendance summary for a student
 - **WHEN** the Teacher views the student table on a course with recorded sessions
@@ -112,73 +215,80 @@ The system SHALL compute each student's attendance percentage as the number of t
 - **THEN** every student in the group appears in the table, even if they have no attendance records
 
 ### Requirement: Create today session shortcut
-The course detail panel SHALL provide a one-click control labeled "Crear sesión de hoy" to create an attendance session for the current date. When a session for the current date already exists, the control SHALL navigate to that session's detail page instead of creating a duplicate.
+The "Sesión de hoy" cards on the dashboard and the course detail page SHALL provide a one-click control that get-or-creates the attendance session for the current date for that Course. When a session for the current date already exists, the control SHALL navigate to that session's today session page instead of creating a duplicate.
 
 #### Scenario: Teacher starts today's session
-- **WHEN** the Teacher clicks the "Crear sesión de hoy" control and no session exists for today
-- **THEN** a session for today is created with attendance records for the group and the Teacher is taken to its detail page
+- **WHEN** the Teacher clicks the "Sesión de hoy" control and no session exists for today
+- **THEN** a session for today is created with attendance records for the group and the Teacher is taken to its today session page
 
 #### Scenario: Today's session already exists
-- **WHEN** the Teacher clicks the control and a session for today already exists
-- **THEN** no duplicate session is created and the Teacher is taken to the existing session's detail page
+- **WHEN** the Teacher clicks the "Sesión de hoy" control and a session for today already exists
+- **THEN** no duplicate session is created and the Teacher is taken to the existing session's today session page
 
 ### Requirement: Session creation from the panel
-The panel SHALL allow the Teacher to create an attendance session for one of their Courses by choosing a date on the course sessions page. The creation request SHALL be submitted with HTMX and the session list SHALL update without a full page reload.
+The panel SHALL allow the Teacher to create an attendance session for one of their Courses by choosing a date on the session history page's "Crear sesión en otra fecha" form. The chosen date SHALL be before today: dates in the future SHALL be rejected with a validation error, and today's date SHALL be rejected with a message directing the Teacher to the "Sesión de hoy" card. A date that already has a session for the Course SHALL be rejected. On success the session SHALL be created with per-student records and the Teacher SHALL be taken to the new session's page. On validation errors the form SHALL re-render in place with the errors, without a full page reload.
 
-#### Scenario: Teacher creates a session via HTMX
-- **WHEN** the Teacher picks a date and submits the create-session form on the course sessions page
-- **THEN** a session is created for that date, per-student records are generated, and the session list updates in place without a full page reload
+#### Scenario: Teacher creates a past session
+- **WHEN** the Teacher picks a past date and submits the create-session form on the history page
+- **THEN** a session is created for that date, per-student records are generated, and the Teacher is taken to the new session's page
+
+#### Scenario: Future date rejected
+- **WHEN** the Teacher submits the create-session form with a date after today
+- **THEN** the form shows a validation error and no session is created
+
+#### Scenario: Today's date rejected
+- **WHEN** the Teacher submits the create-session form with today's date
+- **THEN** the form shows a validation error directing to the "Sesión de hoy" card and no session is created
 
 #### Scenario: Duplicate session date handled
-- **WHEN** the Teacher submits a create-session form for a date that already has a session for that Course
+- **WHEN** the Teacher submits the create-session form for a date that already has a session for that Course
 - **THEN** the form shows a validation error and no duplicate session is created
 
-### Requirement: Session update and deletion from the panel
-The panel SHALL allow the Teacher to edit an Attendance Session's date and to delete an Attendance Session from the session detail page. The session list SHALL NOT offer edit or delete controls. Editing SHALL be submitted with HTMX and update the session detail page in place. Deleting SHALL require the Teacher to confirm the deletion and, once confirmed, SHALL remove the session and its records and redirect the Teacher to the course sessions page.
+### Requirement: Attendance recording on the today session page
+The today session page SHALL render the attendance editing interface by default: one row per student with a cyclic status button and a notes field. The rows SHALL be rendered client-side by Alpine.js from the session's records serialized into the page as JSON, and every student of the course's group SHALL be listed. Status changes and note edits SHALL be applied to a client-side pending state without any network request. A single save control SHALL submit all pending records to the attendance JSON API in one request; on success the pending state SHALL clear and a success toast SHALL be shown; on failure the pending state SHALL be preserved and an error toast SHALL be shown. Saving SHALL NOT re-render any server-rendered fragment.
 
-#### Scenario: Teacher edits a session date via HTMX
-- **WHEN** the Teacher changes the date of an existing session on the session detail page and submits the edit form
-- **THEN** the session is updated, the new date respects the one-session-per-course-per-date rule, and the session detail page updates in place
+#### Scenario: Today's session opens in editing mode
+- **WHEN** the Teacher opens the today session page
+- **THEN** every student of the course's group is listed with an interactive status button and a notes field, rendered from the serialized records with no extra action required
 
-#### Scenario: Deletion requires confirmation
-- **WHEN** the Teacher clicks the delete control on the session detail page
-- **THEN** a confirmation message is shown before the deletion is submitted
+#### Scenario: Status clicks and note edits stay local
+- **WHEN** the Teacher cycles statuses or types notes on the today session page
+- **THEN** the changes are held in the client-side pending state and no network request is issued
 
-#### Scenario: Teacher deletes a session after confirming
-- **WHEN** the Teacher confirms the deletion of a session from the session detail page
-- **THEN** the session and its records are removed and the Teacher is redirected to the course sessions page
+#### Scenario: Teacher saves all pending changes
+- **WHEN** the Teacher clicks the save control with pending changes
+- **THEN** all pending records are sent to the attendance API in one request, the pending state clears, and a success toast is shown
+
+#### Scenario: Failed save preserves pending changes
+- **WHEN** the save request fails or is rejected
+- **THEN** the pending state is preserved, the changes remain staged, and an error toast is shown
 
 ### Requirement: Cyclic attendance status button
-The panel SHALL render each student's attendance status as a single button instead of radio buttons. Clicking the button SHALL advance the record's status to the next value in the cycle PRESENT → ABSENT → LATE → EXCUSED and back to PRESENT, persisting the change immediately without a full page reload.
+The today session page SHALL render each student's attendance status as a single button instead of radio buttons. Clicking the button SHALL advance the record's status to the next value in the cycle PRESENT → ABSENT → LATE → EXCUSED and back to PRESENT, updating only the client-side pending state: the change SHALL NOT be persisted and SHALL NOT issue any network request until the Teacher saves. The previous session page SHALL NOT use the cyclic status button.
 
 #### Scenario: Teacher cycles a student's status
-- **WHEN** the course Teacher clicks the status button for a student
-- **THEN** the record's status advances to the next value in the cycle
-- **AND** the updated status is saved on the server immediately
-- **AND** only the status button is re-rendered via HTMX
+- **WHEN** the course Teacher clicks the status button for a student on the today session page
+- **THEN** the record's status advances to the next value in the cycle in the client-side state
+- **AND** no network request is made and nothing is persisted
 
-#### Scenario: Another teacher's session record
-- **WHEN** a Teacher who is not the Course's Teacher attempts to toggle a record's status
-- **THEN** the system denies the action and the status is unchanged
+#### Scenario: Cycled change persists only on save
+- **WHEN** the Teacher cycles one or more statuses and then saves
+- **THEN** the cycled statuses are persisted together with the single save request
 
 ### Requirement: HTMX fragment responses render template partials
-The teacher panel SHALL serve each HTMX-driven swap — attendance panel updates, per-record status button cycling, session date edit form fetch, and session header update — by rendering the corresponding Django template partial in isolation via the `template_name#partial_name` syntax, returning only the fragment without the full page shell. Fragment templates SHALL be defined inside their host page templates with `{% partialdef %}` rather than as separate partial files.
+The teacher panel SHALL serve each HTMX-driven swap — history create-form validation errors, past-session batch edit saves, and history session list re-renders after deletion — by rendering the corresponding Django template partial in isolation via the `template_name#partial_name` syntax, returning only the fragment without the full page shell. Fragment templates SHALL be defined inside their host page templates with `{% partialdef %}` rather than as separate partial files, and each fragment SHALL live in the page template whose view renders it. The today session page SHALL NOT use HTMX fragments for attendance recording.
 
-#### Scenario: Status button toggle returns only the button
-- **WHEN** the Teacher clicks a student's status button
-- **THEN** the response contains only the re-rendered status button fragment, not the full session page
+#### Scenario: Create-form error returns only the form
+- **WHEN** the Teacher submits the history create-session form with an invalid date via HTMX
+- **THEN** the response contains only the re-rendered create-form fragment with the errors
 
-#### Scenario: Attendance save returns only the attendance panel
-- **WHEN** the Teacher saves attendance from the session page
-- **THEN** the response contains only the re-rendered attendance panel fragment
+#### Scenario: Batch edit save returns only the read-only panel
+- **WHEN** the Teacher submits the past-session batch edit form
+- **THEN** the response contains only the re-rendered read-only attendance fragment with a success confirmation
 
-#### Scenario: Session edit form fetch returns only the form
-- **WHEN** the Teacher requests the edit-date form via HTMX
-- **THEN** the response contains only the session edit form fragment
-
-#### Scenario: Session edit success returns only the session header
-- **WHEN** the Teacher submits a valid session date change via HTMX
-- **THEN** the response contains only the re-rendered session header fragment
+#### Scenario: Session deletion returns only the session list
+- **WHEN** the Teacher confirms the deletion of a past session from the history page
+- **THEN** the response contains only the re-rendered session list fragment
 
 ### Requirement: Attendance notes from the panel
 The panel SHALL provide a notes field on each Attendance Record so the Teacher can record a short reason or comment for a student's attendance.
@@ -187,29 +297,24 @@ The panel SHALL provide a notes field on each Attendance Record so the Teacher c
 - **WHEN** the Teacher enters a note for a student's record and saves
 - **THEN** the note is stored on that Attendance Record
 
-### Requirement: Attendance recording from the panel
-The panel SHALL provide a session page where the Teacher can set each student's status (PRESENT, ABSENT, LATE, EXCUSED), add an optional note, and save. The session page SHALL render the attendance editing interface by default only when the session's date is the current date; for sessions dated in the past it SHALL render the attendance read-only and SHALL offer an explicit "Editar" control that enables the editing interface. Saving SHALL be submitted with HTMX and update the student list in place with a confirmation, without a full page reload.
+### Requirement: Unsaved-changes guard on the today session page
+The today session page SHALL surface pending (unsaved) attendance changes: the save control SHALL be disabled while no changes are pending and enabled once any record is pending; the page SHALL show a badge with the count of pending records; and closing or navigating away from the page while changes are pending SHALL trigger the browser's unload warning. The guard state SHALL reset after a successful save.
 
-#### Scenario: Today's session opens in editing mode
-- **WHEN** the Teacher opens the session page of a session dated today
-- **THEN** the attendance editing interface (status buttons and note fields) is editable without any extra action
+#### Scenario: Save control disabled without pending changes
+- **WHEN** the Teacher opens the today session page or has just saved successfully
+- **THEN** the save control is disabled and no pending-count badge is shown
 
-#### Scenario: Past session opens read-only
-- **WHEN** the Teacher opens the session page of a session dated before today
-- **THEN** every student of the course's group is listed with their current status and note shown read-only
-- **AND** no editing controls are rendered
+#### Scenario: Save control enabled with a pending count
+- **WHEN** the Teacher cycles a status or edits a note without saving
+- **THEN** the save control becomes enabled and a badge shows the number of pending records
 
-#### Scenario: Teacher enables editing on a past session
-- **WHEN** the Teacher clicks the "Editar" control on a past session page
-- **THEN** the attendance editing interface becomes available and statuses and notes can be changed and saved
+#### Scenario: Leaving with pending changes warns
+- **WHEN** the Teacher closes the tab or navigates away with pending changes
+- **THEN** the browser shows the unload confirmation warning
 
-#### Scenario: Teacher records attendance via HTMX
-- **WHEN** the Teacher changes statuses or notes on the session page and saves
-- **THEN** all records are updated and the student list re-renders in place with a success confirmation
-
-#### Scenario: All group students listed with statuses
-- **WHEN** the Teacher opens a session page, editable or read-only
-- **THEN** every student of the course's group is listed with their current status and note
+#### Scenario: Leaving without pending changes does not warn
+- **WHEN** the Teacher closes the tab or navigates away with no pending changes
+- **THEN** no unload warning is shown
 
 ### Requirement: Teacher panel text is in Spanish
 The teacher panel SHALL display all user-visible text in Spanish, including page titles, headings, table headers, form labels, buttons, status labels, and confirmation or error messages. Code identifiers, model field names, choice values, and URL paths SHALL remain in English.

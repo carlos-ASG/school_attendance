@@ -13,4 +13,4 @@
 ## 3. Verification
 
 - [x] 3.1 Rebuild Tailwind (`uv run manage.py tailwind build`) and run `uv run manage.py check` and `uv run manage.py test`
-- [ ] 3.2 Manual pass with `uv run manage.py runserver`: toggle expands/collapses, state persists across navigation/reload, Home navigates to dashboard and is active only there, sidebar logout POSTs and redirects to login, tooltips only when collapsed
+- [x] 3.2 Manual pass with `uv run manage.py runserver`: toggle expands/collapses, state persists across navigation/reload, Home navigates to dashboard and is active only there, sidebar logout POSTs and redirects to login, tooltips only when collapsed
