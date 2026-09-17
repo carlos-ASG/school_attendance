@@ -16,6 +16,44 @@
 
 {% block content %}
     {% partial session_header %}
+{% endblock %}
+{% partialdef session_header %}
+<c-layout.surface>
+    <c-slot name="header">
+        <div class="flex flex-col gap-1">
+            <h2 class="text-xl font-semibold tracking-tight">{{ session.course.subject }} — {{ session.date }}</h2>
+            <p class="text-sm text-muted-foreground">
+                {{ session.course.student_group }}
+                {% if session.course.classroom %}· Salón: {{ session.course.classroom }}{% endif %}
+                · Creada por: {{ session.created_by }}
+            </p>
+        </div>
+        <c-alert-dialog>
+            <c-button variant="destructive" type="button">
+                <c-alert-dialog.trigger>
+                    <c-icon.trash class="size-4"/>
+                </c-alert-dialog.trigger>
+            </c-button>
+
+            <c-alert-dialog.content>
+                <c-alert-dialog.header>
+                    <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
+                    <c-alert-dialog.description>
+                        Esta acción eliminará la sesión y todos sus registros de asistencia. No se puede deshacer.
+                    </c-alert-dialog.description>
+                </c-alert-dialog.header>
+
+                <c-alert-dialog.footer>
+                    <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
+                    <c-alert-dialog.action variant="destructive"
+                                           hx-post="{% url 'teachers:session_delete' session.pk %}"
+                                           hx-swap="none">
+                        Eliminar
+                    </c-alert-dialog.action>
+                </c-alert-dialog.footer>
+            </c-alert-dialog.content>
+        </c-alert-dialog>
+    </c-slot>
 
     <div id="attendance-panel">
         <div x-data="attendancePanel" @beforeunload.window="handleBeforeUnload($event)">
@@ -147,44 +185,5 @@
             }));
         });
     </script>
-{% endblock %}
-{% partialdef session_header %}
-<c-card>
-    <c-card.header>
-        <c-card.title>{{ session.course.subject }} — {{ session.date }}</c-card.title>
-    </c-card.header>
-    <c-card.content>
-        <p class="text-sm">
-            <strong>Grupo:</strong> {{ session.course.student_group }}<br>
-            <strong>Creada por:</strong> {{ session.created_by }}
-        </p>
-    </c-card.content>
-    <c-card.footer class="justify-end">
-        <c-alert-dialog>
-            <c-button variant="destructive" type="button">
-                <c-alert-dialog.trigger>
-                    <c-icon.trash class="size-4"/>
-                </c-alert-dialog.trigger>
-            </c-button>
-
-            <c-alert-dialog.content>
-                <c-alert-dialog.header>
-                    <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
-                    <c-alert-dialog.description>
-                        Esta acción eliminará la sesión y todos sus registros de asistencia. No se puede deshacer.
-                    </c-alert-dialog.description>
-                </c-alert-dialog.header>
-
-                <c-alert-dialog.footer>
-                    <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
-                    <c-alert-dialog.action variant="destructive"
-                                           hx-post="{% url 'teachers:session_delete' session.pk %}"
-                                           hx-swap="none">
-                        Eliminar
-                    </c-alert-dialog.action>
-                </c-alert-dialog.footer>
-            </c-alert-dialog.content>
-        </c-alert-dialog>
-    </c-card.footer>
-</c-card>
+</c-layout.surface>
 {% endpartialdef session_header %}
