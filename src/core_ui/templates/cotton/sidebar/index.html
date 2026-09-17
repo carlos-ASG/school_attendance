@@ -1,5 +1,17 @@
 <c-vars class></c-vars>
-<aside class="flex h-screen w-16 flex-col justify-between border-e border-border bg-background {% if class %}{{ class }}{% endif %}" {{ attrs }}>
+<aside
+    x-data="{
+        open: localStorage.getItem('sidebar-open') === '1',
+        toggle() {
+            this.open = !this.open;
+            localStorage.setItem('sidebar-open', this.open ? '1' : '0');
+        }
+    }"
+    @toggle-sidebar.window="toggle()"
+    :class="open && 'w-64'"
+    class="flex h-screen w-16 shrink-0 flex-col justify-between border-e border-border bg-background {% if class %}{{ class }}{% endif %}"
+    {{ attrs }}
+>
     <div>
         {% if brand %}
             {{ brand }}
