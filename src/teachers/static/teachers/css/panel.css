@@ -81,27 +81,27 @@ form button,
 }
 
 .status-present {
-    background-color: #16a34a;
+    background-color: #2A7302;
     color: #fff;
-    border-color: #15803d;
+    border-color: #1d5402;
 }
 
 .status-absent {
-    background-color: #dc2626;
-    color: #fff;
-    border-color: #b91c1c;
+    background-color: #DBDBDB;
+    color: #333;
+    border-color: #b3b3b3;
 }
 
 .status-late {
-    background-color: #f59e0b;
-    color: #fff;
-    border-color: #d97706;
+    background-color: #FFB738;
+    color: #333;
+    border-color: #d99a1f;
 }
 
 .status-excused {
-    background-color: #2563eb;
+    background-color: #1249BF;
     color: #fff;
-    border-color: #1d4ed8;
+    border-color: #0d3a99;
 }
 
 .actions {
