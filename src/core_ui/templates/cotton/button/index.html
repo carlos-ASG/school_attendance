@@ -1,5 +1,5 @@
-<c-vars variant="default" size="default" class></c-vars>
-<button
+<c-vars variant="default" size="default" class href></c-vars>
+<{% if href %}a href="{{ href }}"{% else %}button{% endif %}
     class="
     inline-flex
     items-center
@@ -41,4 +41,4 @@
     {{ attrs }}
 >
     {{ slot }}
-</button>
+</{% if href %}a{% else %}button{% endif %}>

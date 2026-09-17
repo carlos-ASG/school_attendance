@@ -32,12 +32,15 @@
                 <div class="flex flex-row items-center gap-3">
                     <form method="post" action="{% url 'teachers:today_session_create' course.pk %}">
                         {% csrf_token %}
-                        <c-button type="submit">Tomar asistencia</c-button>
+                        <c-button type="submit">
+                            <c-icon.users />
+                            Tomar asistencia
+                        </c-button>
                     </form>
-                    <a href="{% url 'teachers:course_session_history' course.pk %}"
-                       class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
+                    <c-button href="{% url 'teachers:course_session_history' course.pk %}" variant="outline">
+                        <c-icon.calendar />
                         Historial de sesiones
-                    </a>
+                    </c-button>
                 </div>
             </c-card.content>
         </c-card>

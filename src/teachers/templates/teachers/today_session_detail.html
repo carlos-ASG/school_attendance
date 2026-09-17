@@ -29,11 +29,12 @@
             </p>
         </div>
         <c-alert-dialog>
-            <c-button variant="destructive" type="button">
-                <c-alert-dialog.trigger>
-                    <c-icon.trash class="size-4"/>
-                </c-alert-dialog.trigger>
-            </c-button>
+            <c-alert-dialog.trigger>
+                <c-button variant="ghost" type="button" size="icon" aria-label="Eliminar sesión"
+                          class="border border-transparent bg-transparent focus:bg-muted active:bg-muted">
+                    <c-icon.trash />
+                </c-button>
+            </c-alert-dialog.trigger>
 
             <c-alert-dialog.content>
                 <c-alert-dialog.header>
@@ -94,7 +95,10 @@
                 </c-table>
 
                 <div class="mt-4 flex items-center gap-3">
-                    <c-button type="submit" ::disabled="pendingCount === 0 || saving">Guardar cambios</c-button>
+                    <c-button type="submit" ::disabled="pendingCount === 0 || saving">
+                        <c-icon.circle_check />
+                        Guardar cambios
+                    </c-button>
                     <c-badge variant="secondary" x-cloak x-show="pendingCount > 0">
                         <span x-text="pendingCount + ' sin guardar'"></span>
                     </c-badge>

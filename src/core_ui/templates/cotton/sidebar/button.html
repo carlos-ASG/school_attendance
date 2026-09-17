@@ -1,0 +1,13 @@
+<c-vars icon tooltip class></c-vars>
+<button aria-label="{{ tooltip }}"
+            class="group relative w-full rounded-lg border border-transparent bg-transparent px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:bg-muted focus:text-foreground active:bg-muted active:text-foreground {% if class %}{{ class }}{% endif %}"
+            :class="open ? 'flex items-center gap-3' : 'grid place-content-center'"
+            {{ attrs }}>
+        <c-component is="icon.{{ icon }}" class="size-5 shrink-0" />
+        <span class="whitespace-nowrap" x-show="open" x-cloak>
+            {{ tooltip }}
+        </span>
+        <span class="invisible absolute start-full top-1/2 z-50 ms-4 -translate-y-1/2 whitespace-nowrap rounded-sm bg-popover px-2 py-1.5 text-xs font-medium text-popover-foreground shadow-sm group-hover:visible" x-show="!open">
+            {{ tooltip }}
+        </span>
+    </button>

@@ -51,18 +51,6 @@ td {
     border-bottom: 1px solid var(--border);
 }
 
-form button,
-.btn {
-    background: var(--primary);
-    color: #fff;
-    border: none;
-    border-radius: 0.25rem;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-}
-
 .errorlist {
     color: #dc2626;
     list-style: none;

@@ -23,11 +23,12 @@
             </div>
 
             <c-dialog default_open="{{ form.errors|yesno:'true,false' }}">
-                <c-button type="button" aria-label="Crear sesión en otra fecha">
-                    <c-dialog.trigger>
-                        <c-icon.plus class="size-4"/>
-                    </c-dialog.trigger>
-                </c-button>
+                <c-dialog.trigger>
+                    <c-button type="button">
+                        <c-icon.plus />
+                        Crear sesión
+                    </c-button>
+                </c-dialog.trigger>
 
                 <c-dialog.content>
                     <c-dialog.header>
@@ -54,7 +55,10 @@
 
                             <c-dialog.footer>
                                 <c-dialog.close variant="outline">Cancelar</c-dialog.close>
-                                <c-button type="submit">Crear sesión</c-button>
+                                <c-button type="submit">
+                                    <c-icon.plus />
+                                    Crear sesión
+                                </c-button>
                             </c-dialog.footer>
                         </form>
                         {% endpartialdef session_create_form %}
