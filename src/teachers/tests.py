@@ -577,7 +577,7 @@ class CourseDetailViewTests(TestCase):
     def test_today_card_rendered(self):
         url = reverse('teachers:course_detail', args=[self.course.pk])
         response = self.client.get(url)
-        self.assertContains(response, 'Sesión de hoy')
+        self.assertContains(response, 'Tomar asistencia')
         self.assertContains(
             response,
             reverse('teachers:today_session_create', args=[self.course.pk]),

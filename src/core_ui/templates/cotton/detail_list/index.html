@@ -1,0 +1,12 @@
+<c-vars class header_label header_value></c-vars>
+{% if header_label %}
+    <div class="grid grid-cols-1 gap-1 border-b border-border p-3 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:grid-cols-3 sm:gap-4" {{ attrs }}>
+        <span>{{ header_label }}</span>
+        <span class="sm:col-span-2">{% if header_value %}{{ header_value }}{% endif %}</span>
+    </div>
+{% endif %}
+<div class="flow-root">
+    <dl class="-my-3 divide-y divide-border text-sm *:even:bg-muted {% if class %}{{ class }}{% endif %}" {{ attrs }}>
+        {{ slot }}
+    </dl>
+</div>

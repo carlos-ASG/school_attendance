@@ -1,8 +1,15 @@
 <c-vars class></c-vars>
 <div class="w-full" {{ attrs }}>
     <div class="w-full bg-sidebar ring-1 ring-foreground/10 p-2.5 rounded-xl {% if class %}{{ class }}{% endif %}">
-        <div class="w-full rounded-xl bg-background shadow-md p-6 flex flex-col gap-6">
-            {{ slot }}
+        <div class="w-full rounded-xl bg-background shadow-md overflow-hidden">
+            {% if header %}
+                <header class="flex flex-col gap-4 p-6 sm:flex-row sm:items-start sm:justify-between">
+                    {{ header }}
+                </header>
+            {% endif %}
+            <div class="flex flex-col gap-6 {% if header %}border-t border-border py-8 px-6{% else %}p-6{% endif %}">
+                {{ slot }}
+            </div>
         </div>
     </div>
 </div>

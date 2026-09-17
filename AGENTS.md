@@ -4,6 +4,7 @@
 
 - Package/env is managed by `uv` (Python >= 3.12). Always run Django via `uv run manage.py <command>` (e.g. `uv run manage.py check`, `uv run manage.py migrate`, `uv run manage.py runserver`).
 - No test suite, linter, or CI yet. Minimum verification after changes: `uv run manage.py check`.
+- Tailwind CSS is prebuilt (`core-ui/css/output.css` via django-tailwind-cli). After adding new utility classes to any template, run `uv run manage.py tailwind build` — stale CSS silently drops unknown classes (no error, just missing padding/colors).
 
 ## Layout quirks
 

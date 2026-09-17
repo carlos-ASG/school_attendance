@@ -13,67 +13,74 @@
 {% endblock %}
 
 {% block content %}
-    <c-badge>{{ course.subject }} - {{ course.student_group }}</c-badge>
-    {% if course.classroom %}
-        <c-badge variant="secondary"><strong>Salon:&nbsp;</strong> {{ course.classroom }}</c-badge>
-    {% endif %}
-    <c-card class="mt-4">
-        <c-card.header>
-            <c-card.title><strong>Horario</strong></c-card.title>
-        </c-card.header>
-        <c-card.content>
-            <ul>
-                {% for slot in course.schedule_slots.all %}
-                    <li>{{ slot.get_weekday_display }}: {{ slot.start_time }}–{{ slot.end_time }}</li>
-                {% empty %}
-                    <li>Sin horario configurado.</li>
-                {% endfor %}
-            </ul>
-        </c-card.content>
-    </c-card>
+    <c-layout.surface>
+        <c-slot name="header">
+            <div class="flex flex-col gap-1">
+                <h2 class="text-xl font-semibold tracking-tight">{{ course.subject }}</h2>
+                <p class="text-sm text-muted-foreground">
+                    {{ course.student_group }}
+                    {% if course.classroom %}· Salón: {{ course.classroom }}{% endif %}
+                </p>
+            </div>
+        </c-slot>
 
-    <c-card class="mt-4">
-        <c-card.header>
-            <c-card.title>Sesión de hoy</c-card.title>
-        </c-card.header>
-        <c-card.footer>
-            <form method="post" action="{% url 'teachers:today_session_create' course.pk %}">
-                {% csrf_token %}
-                <c-button type="submit">Tomar asistencia</c-button>
-            </form>
-        </c-card.footer>
-    </c-card>
+        <c-card>
+            <c-card.header>
+                <c-card.title>Sesioses</c-card.title>
+            </c-card.header>
+            <c-card.content>
+                <div class="flex flex-row items-center gap-3">
+                    <form method="post" action="{% url 'teachers:today_session_create' course.pk %}">
+                        {% csrf_token %}
+                        <c-button type="submit">Tomar asistencia</c-button>
+                    </form>
+                    <a href="{% url 'teachers:course_session_history' course.pk %}"
+                       class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
+                        Historial de sesiones
+                    </a>
+                </div>
+            </c-card.content>
+        </c-card>
 
-    <p class="mt-4">
-        <a href="{% url 'teachers:course_session_history' course.pk %}"
-           class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
-            Historial de sesiones
-        </a>
-    </p>
+        <c-card>
+            <c-card.header>
+                <c-card.title>Horario</c-card.title>
+            </c-card.header>
+            <c-card.content>
+                <c-detail_list header_label="Día" header_value="Hora">
+                    {% for schedule_slot in course.schedule_slots.all %}
+                        <c-detail_list.item label="{{ schedule_slot.get_weekday_display }}">{{ schedule_slot.start_time }}–{{ schedule_slot.end_time }}</c-detail_list.item>
+                    {% empty %}
+                        <c-detail_list.item>Sin horario asignar.</c-detail_list.item>
+                    {% endfor %}
+                </c-detail_list>
+            </c-card.content>
+        </c-card>
 
-    <c-card class="mt-4">
-        <c-card.header>
-            <c-card.title><strong>{{ course.student_group.students.count }} estudiante(s)</strong></c-card.title>
-        </c-card.header>
-        <c-card.content>
-        <c-table>
-            <c-table.header>
-                <c-table.head>Estudiante</c-table.head>
-                <c-table.head>Asistencia</c-table.head>
-            </c-table.header>
-            <c-table.body>
-                {% for student_pk, row in attendance.items %}
-                    <c-table.row>
-                        <c-table.cell>{{ row.student }}</c-table.cell>
-                        <c-table.cell>{{ row.attended }}/{{ row.total }} ({{ row.percentage }}%)</c-table.cell>
-                    </c-table.row>
-                {% empty %}
-                    <c-table.row>
-                        <c-table.cell colspan="2">No hay estudiantes.</c-table.cell>
-                    </c-table.row>
-                {% endfor %}
-            </c-table.body>
-        </c-table>
-        </c-card.content>
-    </c-card>
+        <c-card>
+            <c-card.header>
+                <c-card.title>{{ course.student_group.students.count }} estudiante(s)</c-card.title>
+            </c-card.header>
+            <c-card.content>
+                <c-table>
+                    <c-table.header>
+                        <c-table.head>Estudiante</c-table.head>
+                        <c-table.head>Asistencia</c-table.head>
+                    </c-table.header>
+                    <c-table.body>
+                        {% for student_pk, row in attendance.items %}
+                            <c-table.row>
+                                <c-table.cell>{{ row.student }}</c-table.cell>
+                                <c-table.cell>{{ row.attended }}/{{ row.total }} ({{ row.percentage }}%)</c-table.cell>
+                            </c-table.row>
+                        {% empty %}
+                            <c-table.row>
+                                <c-table.cell colspan="2">No hay estudiantes.</c-table.cell>
+                            </c-table.row>
+                        {% endfor %}
+                    </c-table.body>
+                </c-table>
+            </c-card.content>
+        </c-card>
+    </c-layout.surface>
 {% endblock %}
