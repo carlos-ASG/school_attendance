@@ -32,11 +32,14 @@
                 <div class="flex flex-row items-center gap-3">
                     <form method="post" action="{% url 'teachers:today_session_create' course.pk %}">
                         {% csrf_token %}
-                        <c-button type="submit">
+                        <c-button type="submit" {% if today_reason %}disabled{% endif %}>
                             <c-icon.users />
                             Tomar asistencia
                         </c-button>
                     </form>
+                    {% if today_reason %}
+                        <p class="text-xs text-destructive">{{ today_reason }}</p>
+                    {% endif %}
                     <c-button href="{% url 'teachers:course_session_history' course.pk %}" variant="outline">
                         <c-icon.calendar />
                         Historial de sesiones

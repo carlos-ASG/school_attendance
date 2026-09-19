@@ -23,7 +23,7 @@ The attendance domain (`src/school/models.py`) has Students, Teachers, Subjects,
 
 ### D1: The course's own cycle is the validation context (no global "active cycle" lookup)
 
-A session date is validated against `session.course.ciclo`. With Course→Cycle mandatory, every session has an unambiguous window; a course from "Agosto – Diciembre 2026" can never have sessions in January even after the next cycle starts. A "cycle containing today" lookup was rejected: it couples validation to the current date and becomes ambiguous if cycles ever overlap. A module-level helper `get_active_cycle(date)` (the single cycle containing that date) is still useful for dashboard scoping, but not for validation.
+A session date is validated against `session.course.school_cycle`. With Course→Cycle mandatory, every session has an unambiguous window; a course from "Agosto – Diciembre 2026" can never have sessions in January even after the next cycle starts. A "cycle containing today" lookup was rejected: it couples validation to the current date and becomes ambiguous if cycles ever overlap. A module-level helper `get_active_cycle(date)` (the single cycle containing that date) is still useful for dashboard scoping, but not for validation.
 
 ### D2: One cycle at a time; no-overlap validated in `clean()`
 
@@ -57,16 +57,16 @@ Rationale: `AttendanceSession.clean()` only runs via `full_clean()`, and the tod
 
 Sessions are historical truth. Marking a recorded day as inhábil later never invalidates, locks, or deletes existing sessions (consistent with the reporting semantics: the day simply does not count). No admin override flag for "class actually happened" — if it did, the calendar entry is wrong and the admin fixes it; error messages name the offending entry so the fix is discoverable.
 
-### D7: `Course.ciclo` — FK PROTECT, mandatory; uniqueness per cycle
+### D7: `Course.school_cycle` — FK PROTECT, mandatory; uniqueness per cycle
 
-`on_delete=PROTECT` matches the existing style (teacher/subject/group are PROTECT): deleting a cycle with courses is blocked; deleting a childless cycle cascades its non-school days. The unique constraint `(teacher, subject, student_group)` becomes `(teacher, subject, student_group, ciclo)` because the same trio legitimately repeats across cycles (group retakes the subject next cuatrimestre, course replicated yearly).
+`on_delete=PROTECT` matches the existing style (teacher/subject/group are PROTECT): deleting a cycle with courses is blocked; deleting a childless cycle cascades its non-school days. The unique constraint `(teacher, subject, student_group)` becomes `(teacher, subject, student_group, school_cycle)` because the same trio legitimately repeats across cycles (group retakes the subject next cuatrimestre, course replicated yearly).
 
 ### D8: Dashboard UX — cycle-scoped main list, "Otros ciclos" section, banner
 
 - Main list: the teacher's courses whose cycle contains today. Alternatives rejected: listing all courses forever (clutter once cycles accumulate) and hiding other-cycle courses entirely (loses access to their history pages).
 - Secondary "Otros ciclos" section: past/future-cycle courses with their cycle name, linking to course detail (history stays reachable; no "Sesión de hoy" card there).
 - Banner when today is not a class day: "Hoy no hay clases — {nombre del inhábil}" for non-school days, or a no-active-cycle notice when no cycle contains today.
-- "Sesión de hoy" card: disabled with a visible reason on non-school days or out-of-cycle days. `TodaySessionCreateView` still validates server-side (defense in depth; POST-only endpoint must stay safe).
+- Dashboard course cards keep a single "Ver curso" action (session creation stays on the course detail page, whose "Sesión de hoy" control is disabled with a visible reason on non-school or out-of-cycle days). `TodaySessionCreateView` still validates server-side (defense in depth; POST-only endpoint must stay safe).
 
 ### D9: Conventions
 
@@ -85,7 +85,7 @@ Sessions are historical truth. Marking a recorded day as inhábil later never in
 The database is disposable — no data migration:
 
 1. Delete `db.sqlite3`.
-2. `makemigrations school`: CreateModel `SchoolCycle` + `NonSchoolDay`; `AddField course.ciclo` (`null=True`) followed by `AlterField` to `null=False` (valid on empty tables); replace the course unique constraint with the per-cycle one.
+2. `makemigrations school`: CreateModel `SchoolCycle` + `NonSchoolDay`; `AddField course.school_cycle` (`null=True`) followed by `AlterField` to `null=False` (valid on empty tables); replace the course unique constraint with the per-cycle one.
 3. `migrate`, then update `seed_dev_data`: demo `SEMESTRAL` cycle "Agosto – Diciembre 2026" spanning today, a 20-nov asueto, a Christmas vacation range, and all seeded courses assigned to it.
 
 Rollback: restore a backup of `db.sqlite3` (dev only).

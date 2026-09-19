@@ -26,33 +26,23 @@ The panel dashboard SHALL list only the Courses of the logged-in Teacher whose S
 - **WHEN** a Teacher opens the dashboard on a date not contained by any School Cycle
 - **THEN** the main course list is empty and the dashboard shows the no-cycle notice banner
 
-### Requirement: Dashboard session quick-access cards
+### Requirement: Dashboard course card actions
 
-The dashboard SHALL render, under each course card, a row of two compact cards: "Sesión de hoy" and "Historial de sesiones". The "Sesión de hoy" card SHALL have no body content and a single footer button that get-or-creates today's session for that course and navigates the Teacher to the today session page. The "Sesión de hoy" button SHALL be disabled with a visible reason when the current date is a Non-School Day of the course's cycle or falls outside the course's cycle. The "Historial de sesiones" card SHALL navigate to that course's session history page.
+The dashboard SHALL render, under each course card, a single "Ver curso" button that navigates the Teacher to that course's detail page. The dashboard SHALL NOT provide a "Sesión de hoy" quick-access control or a "Historial de sesiones" control; today's session is created from the course detail page and sessions are listed from the course's session history page.
 
-#### Scenario: Teacher starts today's session from the dashboard
+#### Scenario: Teacher opens a course from the dashboard
 
-- **WHEN** the Teacher clicks the "Sesión de hoy" card button for a course with no session today
-- **THEN** a session for today is created with attendance records for the group and the Teacher is taken to the today session page
+- **WHEN** the Teacher clicks the "Ver curso" button for a course
+- **THEN** the Teacher is taken to that course's detail page
 
-#### Scenario: Today's session already exists when using the dashboard card
+#### Scenario: Dashboard has no session quick-access
 
-- **WHEN** the Teacher clicks the "Sesión de hoy" card button and a session for today already exists
-- **THEN** no duplicate session is created and the Teacher is taken to the existing session's today page
-
-#### Scenario: Today button disabled on a non-school day
-
-- **WHEN** the Teacher opens the dashboard on a date that is a Non-School Day of a course's cycle
-- **THEN** that course's "Sesión de hoy" button is disabled and the reason is visible on the card
-
-#### Scenario: Teacher opens the history from the dashboard
-
-- **WHEN** the Teacher clicks the "Historial de sesiones" card for a course
-- **THEN** the Teacher is taken to that course's session history page
+- **WHEN** the Teacher opens the dashboard
+- **THEN** no course card offers a "Sesión de hoy" or "Historial de sesiones" control
 
 ### Requirement: Create today session shortcut
 
-The "Sesión de hoy" cards on the dashboard and the course detail page SHALL provide a one-click control that get-or-creates the attendance session for the current date for that Course. When a session for the current date already exists, the control SHALL navigate to that session's today session page instead of creating a duplicate. When the current date is a Non-School Day of the Course's cycle or falls outside the Course's cycle, the control SHALL NOT create a session and SHALL show an informative message instead.
+The course detail page SHALL provide a "Sesión de hoy" one-click control that get-or-creates the attendance session for the current date for that Course. When a session for the current date already exists, the control SHALL navigate to that session's today session page instead of creating a duplicate. When the current date is a Non-School Day of the Course's cycle or falls outside the Course's cycle, the control SHALL NOT create a session and SHALL show an informative message instead.
 
 #### Scenario: Teacher starts today's session
 

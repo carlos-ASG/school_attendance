@@ -15,9 +15,19 @@
         <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <h1 class="text-3xl font-semibold tracking-tight">Mis Cursos</h1>
             <span class="text-sm text-muted-foreground">
-                {{ courses|length }} {% if courses|length == 1 %}curso{% else %}cursos{% endif %} asignados
+                {{ courses|length }} {% if courses|length == 1 %}curso{% else %}cursos{% endif %} en el ciclo en curso
             </span>
         </div>
+
+        {% if non_school_day %}
+            <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
+                Hoy no hay clases — {{ non_school_day.name }}
+            </div>
+        {% elif not active_cycle %}
+            <div class="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="alert">
+                No hay ciclo escolar en curso.
+            </div>
+        {% endif %}
 
         {% for course in courses %}
             <c-card>
@@ -47,14 +57,42 @@
                 </c-card.content>
 
                 <c-card.footer>
-                    <a href="{% url 'teachers:course_detail' course.pk %}"
-                       class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90">
-                       <c-icon.eye class="size-4 mr-1"/>&nbsp;Ver curso
-                    </a>
+                    <c-button href="{% url 'teachers:course_detail' course.pk %}">
+                        <c-icon.eye class="size-4"/>
+                        Ver curso
+                    </c-button>
                 </c-card.footer>
             </c-card>
         {% empty %}
             <p>No tienes cursos asignados aún.</p>
         {% endfor %}
+
+        {% if other_cycle_courses %}
+            <div class="flex flex-col gap-4">
+                <h2 class="text-xl font-semibold tracking-tight">Otros ciclos</h2>
+                {% for course in other_cycle_courses %}
+                    <c-card>
+                        <c-card.header>
+                            <c-card.title>{{ course.subject }}</c-card.title>
+                        </c-card.header>
+
+                        <c-card.content>
+                            <c-badge variant="secondary"><strong>Ciclo:&nbsp;</strong> {{ course.school_cycle }}</c-badge>
+                            <c-badge variant="secondary"><strong>Grupo:&nbsp;</strong> {{ course.student_group }}</c-badge>
+                            {% if course.classroom %}
+                                <c-badge variant="secondary"><strong>Salon:&nbsp;</strong> {{ course.classroom }}</c-badge>
+                            {% endif %}
+                        </c-card.content>
+
+                        <c-card.footer>
+                            <c-button href="{% url 'teachers:course_detail' course.pk %}" variant="outline">
+                                <c-icon.eye class="size-4"/>
+                                Ver curso
+                            </c-button>
+                        </c-card.footer>
+                    </c-card>
+                {% endfor %}
+            </div>
+        {% endif %}
     </c-layout.surface>
 {% endblock %}

@@ -1,8 +1,10 @@
 from typing import Any
 
 from django.db.models import Count, QuerySet
+from django.utils import timezone
 from django.views.generic import DetailView
 
+from school.calendar import today_session_block_reason
 from school.models import AttendanceRecord, Course
 
 from .mixins import TeacherRequiredMixin
@@ -23,13 +25,16 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
     def get_queryset(self) -> QuerySet[Course]:
         return (
             Course.objects.filter(teacher=self.teacher)
-            .select_related('subject', 'teacher', 'student_group')
+            .select_related('subject', 'teacher', 'student_group', 'school_cycle')
             .prefetch_related('student_group__students', 'schedule_slots')
         )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['attendance'] = self.get_attendance_summary()
+        context['today_reason'] = today_session_block_reason(
+            self.object, timezone.now().date()
+        )
         return context
 
     def get_attendance_summary(self) -> dict[int, dict[str, Any]]:

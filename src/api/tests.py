@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from school.tests import make_cycle
 from school.models import (
     AttendanceRecord,
     AttendanceSession,
@@ -48,11 +49,14 @@ class AttendanceApiTests(TestCase):
         )
         cls.subject = Subject.objects.create(name='Ciencias')
         cls.other_subject = Subject.objects.create(name='Historia')
+        cls.cycle = make_cycle()
         cls.course = Course.objects.create(
-            student_group=cls.group, teacher=cls.teacher, subject=cls.subject
+            student_group=cls.group, teacher=cls.teacher, subject=cls.subject,
+            school_cycle=cls.cycle,
         )
         cls.other_course = Course.objects.create(
-            student_group=cls.group, teacher=cls.other_teacher, subject=cls.other_subject
+            student_group=cls.group, teacher=cls.other_teacher, subject=cls.other_subject,
+            school_cycle=cls.cycle,
         )
         cls.today_session = AttendanceSession.objects.create(
             course=cls.course, date=days_from_today(0), created_by=cls.teacher

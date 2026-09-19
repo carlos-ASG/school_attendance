@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -9,6 +10,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView
 
+from school.calendar import validate_session_date
 from school.models import (
     AttendanceSession,
     Course,
@@ -41,6 +43,13 @@ class TodaySessionCreateView(TeacherRequiredMixin, View):
         today = timezone.now().date()
         session = course.sessions.filter(date=today).first()
         if session is None:
+            try:
+                validate_session_date(course, today)
+            except ValidationError as error:
+                messages.error(request, ' '.join(error.messages))
+                return HttpResponseRedirect(
+                    reverse('teachers:course_detail', args=[course.pk])
+                )
             session = AttendanceSession.objects.create(
                 course=course,
                 date=today,

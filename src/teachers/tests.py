@@ -5,10 +5,12 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from school.tests import make_cycle
 from school.models import (
     AttendanceRecord,
     AttendanceSession,
     Course,
+    NonSchoolDay,
     Student,
     StudentGroup,
     Subject,
@@ -41,7 +43,9 @@ class TodaySessionCreateViewTests(TestCase):
         )
 
         cls.subject = Subject.objects.create(name='Ciencias')
+        cls.cycle = make_cycle()
         cls.course = Course.objects.create(
+            school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
@@ -101,6 +105,38 @@ class TodaySessionCreateViewTests(TestCase):
             ).exists()
         )
 
+    def test_today_non_school_day_rejected(self) -> None:
+        NonSchoolDay.objects.create(
+            cycle=self.cycle,
+            name='Asueto de hoy',
+            day_type=NonSchoolDay.DayType.ASUETO,
+            start_date=days_from_today(0),
+        )
+        url = reverse('teachers:today_session_create', args=[self.course.pk])
+        response = self.client.post(url, follow=True)
+        self.assertFalse(
+            AttendanceSession.objects.filter(
+                course=self.course, date=days_from_today(0)
+            ).exists()
+        )
+        self.assertContains(response, 'inhábil')
+        self.assertContains(response, 'Asueto de hoy')
+
+    def test_today_out_of_cycle_rejected(self) -> None:
+        past_cycle = make_cycle(
+            'Ciclo Pasado',
+            start=days_from_today(-200),
+            end=days_from_today(-80),
+        )
+        self.course.school_cycle = past_cycle
+        self.course.save(update_fields=['school_cycle'])
+        url = reverse('teachers:today_session_create', args=[self.course.pk])
+        response = self.client.post(url, follow=True)
+        self.assertFalse(
+            AttendanceSession.objects.filter(course=self.course).exists()
+        )
+        self.assertContains(response, 'fuera del ciclo')
+
 
 class SessionUrlGuardTests(TestCase):
     @classmethod
@@ -115,7 +151,9 @@ class SessionUrlGuardTests(TestCase):
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
         cls.subject = Subject.objects.create(name='Ciencias')
+        cls.cycle = make_cycle()
         cls.course = Course.objects.create(
+            school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
@@ -174,7 +212,9 @@ class CourseSessionHistoryViewTests(TestCase):
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
         cls.subject = Subject.objects.create(name='Ciencias')
+        cls.cycle = make_cycle()
         cls.course = Course.objects.create(
+            school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
@@ -243,6 +283,50 @@ class CourseSessionHistoryViewTests(TestCase):
             1,
         )
 
+    def test_create_non_school_day_rejected(self) -> None:
+        date = days_from_today(-2)
+        NonSchoolDay.objects.create(
+            cycle=self.cycle,
+            name='Asueto histórico',
+            day_type=NonSchoolDay.DayType.ASUETO,
+            start_date=date,
+        )
+        url = reverse('teachers:course_session_history', args=[self.course.pk])
+        response = self.client.post(url, {'date': date})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            AttendanceSession.objects.filter(course=self.course, date=date).exists()
+        )
+        self.assertContains(response, 'inhábil')
+        self.assertContains(response, 'Asueto histórico')
+
+    def test_create_out_of_cycle_date_rejected(self) -> None:
+        date = (timezone.now().date() - timedelta(days=61)).isoformat()
+        url = reverse('teachers:course_session_history', args=[self.course.pk])
+        response = self.client.post(url, {'date': date})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            AttendanceSession.objects.filter(course=self.course, date=date).exists()
+        )
+        self.assertContains(response, 'fuera del ciclo')
+        self.assertContains(response, str(self.cycle))
+
+    def test_create_non_school_day_htmx_returns_form_fragment(self) -> None:
+        date = days_from_today(-2)
+        NonSchoolDay.objects.create(
+            cycle=self.cycle,
+            name='Asueto htmx',
+            day_type=NonSchoolDay.DayType.ASUETO,
+            start_date=date,
+        )
+        url = reverse('teachers:course_session_history', args=[self.course.pk])
+        response = self.client.post(url, {'date': date}, HTTP_HX_REQUEST='true')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'inhábil')
+        self.assertContains(response, 'Asueto htmx')
+        self.assertIn('HX-Retarget', response.headers)
+        self.assertEqual(response.headers['HX-Retarget'], '#session-form')
+
     def test_create_htmx_error_returns_form_fragment(self):
         url = reverse('teachers:course_session_history', args=[self.course.pk])
         response = self.client.post(
@@ -297,7 +381,9 @@ class PreviousSessionDetailViewTests(TestCase):
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
         cls.subject = Subject.objects.create(name='Ciencias')
+        cls.cycle = make_cycle()
         cls.course = Course.objects.create(
+            school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
@@ -404,7 +490,9 @@ class TodaySessionDetailViewTests(TestCase):
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
         cls.subject = Subject.objects.create(name='Ciencias')
+        cls.cycle = make_cycle()
         cls.course = Course.objects.create(
+            school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
@@ -464,7 +552,9 @@ class SessionDeleteViewTests(TestCase):
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
         cls.subject = Subject.objects.create(name='Ciencias')
+        cls.cycle = make_cycle()
         cls.course = Course.objects.create(
+            school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
@@ -547,7 +637,9 @@ class CourseDetailViewTests(TestCase):
             first_name='Marta', last_name='López', user=cls.teacher_user
         )
         cls.subject = Subject.objects.create(name='Historia')
+        cls.cycle = make_cycle()
         cls.course = Course.objects.create(
+            school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
@@ -587,6 +679,41 @@ class CourseDetailViewTests(TestCase):
             reverse('teachers:today_session_create', args=[self.course.pk]),
         )
         self.assertNotContains(response, 'Crear sesión en otra fecha')
+
+    def test_today_card_disabled_on_non_school_day(self) -> None:
+        NonSchoolDay.objects.create(
+            cycle=self.cycle,
+            name='Asueto detalle',
+            day_type=NonSchoolDay.DayType.ASUETO,
+            start_date=days_from_today(0),
+        )
+        url = reverse('teachers:course_detail', args=[self.course.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'disabled')
+        self.assertContains(response, 'Asueto detalle')
+
+    def test_history_link_works_for_other_cycle_course(self) -> None:
+        past_cycle = make_cycle(
+            'Ciclo Pasado Detalle',
+            start=timezone.now().date() - timedelta(days=200),
+            end=timezone.now().date() - timedelta(days=80),
+        )
+        self.course.school_cycle = past_cycle
+        self.course.save(update_fields=['school_cycle'])
+        session = self.make_session()
+        url = reverse('teachers:course_detail', args=[self.course.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            reverse('teachers:course_session_history', args=[self.course.pk]),
+        )
+        history = self.client.get(
+            reverse('teachers:course_session_history', args=[self.course.pk])
+        )
+        self.assertEqual(history.status_code, 200)
+        self.assertIn(session, list(history.context['sessions']))
 
     def test_no_sessions_shows_zero_attendance(self):
         url = reverse('teachers:course_detail', args=[self.course.pk])
@@ -628,7 +755,8 @@ class CourseDetailViewTests(TestCase):
         other_group.students.add(self.student_a)
         other_subject = Subject.objects.create(name='Geografía')
         other_course = Course.objects.create(
-            student_group=other_group, teacher=self.teacher, subject=other_subject
+            student_group=other_group, teacher=self.teacher, subject=other_subject,
+            school_cycle=self.cycle,
         )
         other_session = AttendanceSession.objects.create(
             course=other_course, date=days_from_today(-1), created_by=self.teacher
@@ -670,23 +798,98 @@ class DashboardViewTests(TestCase):
             first_name='Marta', last_name='López', user=cls.teacher_user
         )
         cls.subject = Subject.objects.create(name='Música')
+        cls.cycle = make_cycle()
         cls.course = Course.objects.create(
+            school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
 
     def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
-    def test_dashboard_renders_quick_access_cards(self):
+    def test_dashboard_renders_ver_curso_button(self):
         url = reverse('teachers:dashboard')
         response = self.client.get(url)
-        self.assertContains(response, 'Sesión de hoy')
-        self.assertContains(response, 'Historial de sesiones')
+        self.assertContains(response, 'Ver curso')
         self.assertContains(
+            response,
+            reverse('teachers:course_detail', args=[self.course.pk]),
+        )
+        self.assertNotContains(
             response,
             reverse('teachers:today_session_create', args=[self.course.pk]),
         )
+
+    def test_dashboard_lists_only_current_cycle_courses(self) -> None:
+        past_cycle = make_cycle(
+            'Ciclo Pasado', start=timezone.now().date() - timedelta(days=200),
+            end=timezone.now().date() - timedelta(days=80),
+        )
+        past_subject = Subject.objects.create(name='Ed. Física')
+        past_course = Course.objects.create(
+            student_group=self.group, teacher=self.teacher,
+            subject=past_subject, school_cycle=past_cycle,
+        )
+        url = reverse('teachers:dashboard')
+        response = self.client.get(url)
+        courses = list(response.context['courses'])
+        others = list(response.context['other_cycle_courses'])
+        self.assertIn(self.course, courses)
+        self.assertNotIn(past_course, courses)
+        self.assertIn(past_course, others)
+        self.assertNotIn(self.course, others)
+
+    def test_other_cycle_courses_section_links_to_course_detail(self) -> None:
+        past_cycle = make_cycle(
+            'Ciclo Pasado Dash', start=timezone.now().date() - timedelta(days=200),
+            end=timezone.now().date() - timedelta(days=80),
+        )
+        past_subject = Subject.objects.create(name='Ed. Física Dash')
+        past_course = Course.objects.create(
+            student_group=self.group, teacher=self.teacher,
+            subject=past_subject, school_cycle=past_cycle,
+        )
+        url = reverse('teachers:dashboard')
+        response = self.client.get(url)
+        self.assertContains(response, 'Otros ciclos')
+        self.assertContains(response, 'Ciclo Pasado Dash')
         self.assertContains(
             response,
-            reverse('teachers:course_session_history', args=[self.course.pk]),
+            reverse('teachers:course_detail', args=[past_course.pk]),
         )
+        self.assertNotContains(
+            response,
+            reverse('teachers:today_session_create', args=[past_course.pk]),
+        )
+
+    def test_banner_on_non_school_day(self) -> None:
+        NonSchoolDay.objects.create(
+            cycle=self.cycle,
+            name='Día de la Revolución',
+            day_type=NonSchoolDay.DayType.ASUETO,
+            start_date=days_from_today(0),
+        )
+        url = reverse('teachers:dashboard')
+        response = self.client.get(url)
+        self.assertContains(response, 'Hoy no hay clases')
+        self.assertContains(response, 'Día de la Revolución')
+
+    def test_banner_when_no_cycle_in_progress(self) -> None:
+        past_cycle = make_cycle(
+            'Ciclo Pasado Banner', start=timezone.now().date() - timedelta(days=200),
+            end=timezone.now().date() - timedelta(days=80),
+        )
+        self.course.school_cycle = past_cycle
+        self.course.save(update_fields=['school_cycle'])
+        self.cycle.delete()  # no cycle contains today anymore
+        url = reverse('teachers:dashboard')
+        response = self.client.get(url)
+        self.assertContains(response, 'No hay ciclo escolar en curso.')
+        self.assertEqual(list(response.context['courses']), [])
+        self.assertNotContains(response, 'Hoy no hay clases')
+
+    def test_no_banner_on_normal_day(self) -> None:
+        url = reverse('teachers:dashboard')
+        response = self.client.get(url)
+        self.assertNotContains(response, 'Hoy no hay clases')
+        self.assertNotContains(response, 'No hay ciclo escolar en curso.')

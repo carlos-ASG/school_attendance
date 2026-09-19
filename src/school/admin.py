@@ -20,6 +20,8 @@ from .models import (
     AttendanceSession,
     ClassSchedule,
     Course,
+    NonSchoolDay,
+    SchoolCycle,
     Student,
     StudentGroup,
     Subject,
@@ -68,11 +70,30 @@ class ClassScheduleInline(TabularInline):
     extra = 1
 
 
+class NonSchoolDayInline(TabularInline):
+    model = NonSchoolDay
+    extra = 1
+
+
+@admin.register(SchoolCycle)
+class SchoolCycleAdmin(ModelAdmin):
+    list_display = ('name', 'cycle_type', 'start_date', 'end_date')
+    list_filter = ('cycle_type',)
+    search_fields = ('name',)
+    inlines = [NonSchoolDayInline]
+
+
 @admin.register(Course)
 class CourseAdmin(ModelAdmin):
-    list_display = ('subject', 'teacher', 'student_group', 'classroom', 'student_count')
-    list_filter = ('subject', 'teacher', 'student_group')
-    search_fields = ('subject__name', 'teacher__first_name', 'teacher__last_name', 'student_group__name')
+    list_display = ('subject', 'teacher', 'student_group', 'school_cycle', 'classroom', 'student_count')
+    list_filter = ('subject', 'teacher', 'student_group', 'school_cycle')
+    search_fields = (
+        'subject__name',
+        'teacher__first_name',
+        'teacher__last_name',
+        'student_group__name',
+        'school_cycle__name',
+    )
     inlines = [ClassScheduleInline]
 
     @admin.display(description='Estudiantes')
