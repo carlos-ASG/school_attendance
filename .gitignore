@@ -12,5 +12,8 @@ wheels/
 # Database (dev, disposable)
 db.sqlite3
 
+# User-uploaded media (student photos)
+media/
+
 # Environment / secrets (template lives in .env.example)
 .env

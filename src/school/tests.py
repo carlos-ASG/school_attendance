@@ -1,20 +1,33 @@
+import io
+import shutil
+import tempfile
+import uuid
 from datetime import date, timedelta
-
 from typing import Any
 
+import pillow_heif
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from PIL import ExifTags, Image
 
 from .admin import AttendanceRecordInline
 from .calendar import (
     get_active_cycle,
     get_non_school_day,
     validate_session_date,
+)
+from .images import (
+    MAX_PHOTO_SIZE_BYTES,
+    PHOTO_INVALID_ERROR,
+    PHOTO_TOO_LARGE_ERROR,
+    StudentPhotoField,
 )
 from .models import (
     AttendanceRecord,
@@ -26,6 +39,7 @@ from .models import (
     StudentGroup,
     Subject,
     Teacher,
+    create_attendance_records,
 )
 
 
@@ -240,7 +254,7 @@ class SchoolCycleValidationTests(TestCase):
         cycle.full_clean()
 
     def test_overlapping_cycle_rejected_and_names_conflict(self) -> None:
-        existing = make_cycle('Ciclo Existente')
+        make_cycle('Ciclo Existente')
         today = timezone.now().date()
         overlapping = SchoolCycle(
             name='Ciclo Traslapado',
@@ -492,3 +506,264 @@ class SchoolCycleAdminTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Ciclo escolar')
+
+
+def _two_tone_image(width: int = 1600, height: int = 800) -> Image.Image:
+    image = Image.new('RGB', (width, height))
+    image.paste((255, 0, 0), (0, 0, width, height // 2))
+    image.paste((0, 0, 255), (0, height // 2, width, height))
+    return image
+
+
+def _camera_jpeg_bytes(image: Image.Image) -> bytes:
+    """Un-transposed camera JPEG: pixels rotated CCW + orientation 6 + GPS EXIF."""
+    exif = Image.Exif()
+    exif[ExifTags.Base.Orientation] = 6
+    gps = exif.get_ifd(ExifTags.IFD.GPSInfo)
+    gps[ExifTags.GPS.GPSLatitudeRef] = 'N'
+    gps[ExifTags.GPS.GPSLatitude] = (37.7749, 46.0, 22.0)
+    gps[ExifTags.GPS.GPSLongitudeRef] = 'W'
+    gps[ExifTags.GPS.GPSLongitude] = (122.4194, 25.0, 12.0)
+    buf = io.BytesIO()
+    image.transpose(Image.Transpose.ROTATE_90).save(buf, 'JPEG', exif=exif.tobytes())
+    return buf.getvalue()
+
+
+def _small_jpeg_bytes() -> bytes:
+    buf = io.BytesIO()
+    Image.new('RGB', (400, 300), (0, 128, 128)).save(buf, 'JPEG')
+    return buf.getvalue()
+
+
+def _assert_pixel_close(testcase: TestCase, pixel: tuple, expected: tuple) -> None:
+    testcase.assertTrue(
+        all(abs(actual - target) <= 3 for actual, target in zip(pixel, expected)),
+        f'{pixel} not close to {expected}',
+    )
+
+
+_PHOTO_MEDIA_ROOT = tempfile.mkdtemp(prefix='school-photo-tests-')
+
+
+def tearDownModule() -> None:
+    shutil.rmtree(_PHOTO_MEDIA_ROOT, ignore_errors=True)
+
+
+@override_settings(MEDIA_ROOT=_PHOTO_MEDIA_ROOT)
+class StudentPhotoPipelineTests(TestCase):
+    def make_student(self) -> Student:
+        return Student(
+            first_name='Foto', paternal_surname='Pipeline', maternal_surname='Test'
+        )
+
+    def test_camera_jpeg_normalized(self) -> None:
+        student = self.make_student()
+        student.photo.save(
+            'camera.jpg',
+            SimpleUploadedFile('camera.jpg', _camera_jpeg_bytes(_two_tone_image())),
+            save=True,
+        )
+        self.assertTrue(student.photo.name.startswith('students/'))
+        self.assertTrue(student.photo.name.endswith('.jpg'))
+        stem = student.photo.name.rsplit('/', 1)[-1].removesuffix('.jpg')
+        uuid.UUID(stem)
+        with Image.open(student.photo.path) as stored:
+            self.assertEqual(stored.format, 'JPEG')
+            self.assertEqual(stored.size, (600, 300))
+            _assert_pixel_close(self, stored.getpixel((300, 75)), (255, 0, 0))
+            _assert_pixel_close(self, stored.getpixel((300, 225)), (0, 0, 255))
+            exif = stored.getexif()
+            self.assertEqual(dict(exif), {})
+            self.assertEqual(dict(exif.get_ifd(ExifTags.IFD.GPSInfo)), {})
+
+    def test_heic_normalized(self) -> None:
+        student = self.make_student()
+        buf = io.BytesIO()
+        pillow_heif.from_pillow(Image.new('RGB', (900, 500), (0, 128, 128))).save(buf)
+        student.photo.save(
+            'iphone.heic', SimpleUploadedFile('iphone.heic', buf.getvalue()), save=True
+        )
+        with Image.open(student.photo.path) as stored:
+            self.assertEqual(stored.format, 'JPEG')
+            self.assertEqual(stored.size, (600, 333))
+            self.assertEqual(dict(stored.getexif()), {})
+
+    def test_webp_normalized(self) -> None:
+        student = self.make_student()
+        buf = io.BytesIO()
+        Image.new('RGB', (800, 600), (10, 200, 30)).save(buf, 'WEBP')
+        student.photo.save(
+            'img.webp', SimpleUploadedFile('img.webp', buf.getvalue()), save=True
+        )
+        with Image.open(student.photo.path) as stored:
+            self.assertEqual(stored.format, 'JPEG')
+            self.assertEqual(stored.size, (600, 450))
+            self.assertEqual(dict(stored.getexif()), {})
+
+    def test_png_alpha_flattened_onto_white(self) -> None:
+        student = self.make_student()
+        buf = io.BytesIO()
+        Image.new('RGBA', (100, 80), (255, 0, 0, 0)).save(buf, 'PNG')
+        student.photo.save(
+            'transparent.png', SimpleUploadedFile('transparent.png', buf.getvalue()), save=True
+        )
+        with Image.open(student.photo.path) as stored:
+            self.assertEqual(stored.mode, 'RGB')
+            self.assertEqual(stored.getpixel((0, 0)), (255, 255, 255))
+
+    def test_small_image_not_upscaled(self) -> None:
+        student = self.make_student()
+        buf = io.BytesIO()
+        Image.new('RGB', (300, 200), 'gray').save(buf, 'PNG')
+        student.photo.save(
+            'small.png', SimpleUploadedFile('small.png', buf.getvalue()), save=True
+        )
+        with Image.open(student.photo.path) as stored:
+            self.assertEqual(stored.size, (300, 200))
+
+    def test_undecodable_rejected_with_spanish_error(self) -> None:
+        field = StudentPhotoField()
+        with self.assertRaises(ValidationError) as ctx:
+            field.to_python(SimpleUploadedFile('photo.jpg', b'esto no es una imagen'))
+        self.assertIn(PHOTO_INVALID_ERROR, str(ctx.exception.messages))
+        storage = Student._meta.get_field('photo').storage
+        with self.assertRaises(ValidationError) as ctx:
+            storage._save('students/x.jpg', ContentFile(b'esto no es una imagen'))
+        self.assertIn(PHOTO_INVALID_ERROR, str(ctx.exception.messages))
+
+    def test_oversized_rejected_before_decode(self) -> None:
+        field = StudentPhotoField()
+        payload = b'x' * (MAX_PHOTO_SIZE_BYTES + 1)
+        with self.assertRaises(ValidationError) as ctx:
+            field.to_python(SimpleUploadedFile('photo.jpg', payload))
+        self.assertIn(PHOTO_TOO_LARGE_ERROR, str(ctx.exception.messages))
+        storage = Student._meta.get_field('photo').storage
+        with self.assertRaises(ValidationError) as ctx:
+            storage._save('students/x.jpg', ContentFile(payload))
+        self.assertIn(PHOTO_TOO_LARGE_ERROR, str(ctx.exception.messages))
+
+    def test_replacement_deletes_previous_file(self) -> None:
+        student = self.make_student()
+        student.photo.save(
+            'a.jpg', SimpleUploadedFile('a.jpg', _small_jpeg_bytes()), save=True
+        )
+        original_name = student.photo.name
+        files_before = set(student.photo.storage.listdir('students')[1])
+        buf = io.BytesIO()
+        Image.new('RGB', (500, 400), 'purple').save(buf, 'JPEG')
+        student.photo.save(
+            'b.jpg', SimpleUploadedFile('b.jpg', buf.getvalue()), save=True
+        )
+        storage = student.photo.storage
+        self.assertFalse(storage.exists(original_name))
+        self.assertTrue(storage.exists(student.photo.name))
+        files_after = set(storage.listdir('students')[1])
+        self.assertEqual(files_after - files_before, {student.photo.name.rsplit('/', 1)[-1]})
+        self.assertNotIn(original_name.rsplit('/', 1)[-1], files_after)
+@override_settings(MEDIA_ROOT=_PHOTO_MEDIA_ROOT)
+class StudentPhotoAdminTests(TestCase):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.admin_user = get_user_model().objects.create_superuser(
+            'photo-admin', 'photo-admin@example.com', 'pass'
+        )
+        cls.student = Student.objects.create(
+            first_name='Nora', paternal_surname='Ruiz', maternal_surname='Vega'
+        )
+
+    def setUp(self) -> None:
+        self.client.force_login(self.admin_user)
+
+    def change_url(self) -> str:
+        return reverse('admin:school_student_change', args=[self.student.pk])
+
+    def test_upload_via_change_form_stores_one_normalized_file(self) -> None:
+        response = self.client.post(
+            self.change_url(),
+            {
+                'first_name': self.student.first_name,
+                'paternal_surname': self.student.paternal_surname,
+                'maternal_surname': self.student.maternal_surname,
+                'email': '',
+                'photo': SimpleUploadedFile(
+                    'camera.jpg', _camera_jpeg_bytes(_two_tone_image())
+                ),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.student.refresh_from_db()
+        self.assertTrue(self.student.photo)
+        with Image.open(self.student.photo.path) as stored:
+            self.assertEqual(stored.format, 'JPEG')
+            self.assertEqual(stored.size, (600, 300))
+            self.assertEqual(dict(stored.getexif()), {})
+        self.assertEqual(len(self.student.photo.storage.listdir('students')[1]), 1)
+
+    def test_save_without_photo_succeeds(self) -> None:
+        response = self.client.post(
+            self.change_url(),
+            {
+                'first_name': 'Sin',
+                'paternal_surname': 'Foto',
+                'maternal_surname': 'Ninguna',
+                'email': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.student.refresh_from_db()
+        self.assertFalse(self.student.photo)
+
+
+class TeacherPanelPhotoExclusionTests(TestCase):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.group = StudentGroup.objects.create(name='Grupo Foto')
+        cls.student = Student.objects.create(
+            first_name='Ana', paternal_surname='Pérez', maternal_surname='López'
+        )
+        cls.student.photo.save(
+            'p.jpg', SimpleUploadedFile('p.jpg', _small_jpeg_bytes()), save=True
+        )
+        cls.group.students.add(cls.student)
+        cls.teacher_user = get_user_model().objects.create_user(
+            'profe-foto', password='pass'
+        )
+        cls.teacher = Teacher.objects.create(
+            first_name='Marta', last_name='López', user=cls.teacher_user
+        )
+        subject = Subject.objects.create(name='Materia Foto')
+        cls.course = Course.objects.create(
+            student_group=cls.group,
+            teacher=cls.teacher,
+            subject=subject,
+            school_cycle=make_cycle('Ciclo Foto'),
+        )
+        cls.session = AttendanceSession.objects.create(
+            course=cls.course,
+            date=timezone.now().date() - timedelta(days=1),
+            created_by=cls.teacher,
+        )
+        create_attendance_records(cls.session)
+
+    def setUp(self) -> None:
+        self.client.force_login(self.teacher_user)
+
+    def assert_no_photo_references(self, url: str, must_contain: str | None = None) -> None:
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        if must_contain:
+            self.assertContains(response, must_contain)
+        self.assertNotContains(response, '/media/')
+
+    def test_dashboard_has_no_photo_references(self) -> None:
+        self.assert_no_photo_references(reverse('teachers:dashboard'))
+
+    def test_course_detail_has_no_photo_references(self) -> None:
+        self.assert_no_photo_references(
+            reverse('teachers:course_detail', args=[self.course.pk]), 'Pérez'
+        )
+
+    def test_session_detail_has_no_photo_references(self) -> None:
+        self.assert_no_photo_references(
+            reverse('teachers:session_detail', args=[self.session.pk]), 'Pérez'
+        )

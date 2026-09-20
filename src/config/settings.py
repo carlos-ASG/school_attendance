@@ -171,6 +171,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# User-uploaded media (student photos, local dev)
+
+MEDIA_URL = 'media/'
+
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Design-system app (cotton components, allauth templates, tailwind assets)
 
 STATICFILES_DIRS = [BASE_DIR / 'src' / 'core_ui' / 'static']

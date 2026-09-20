@@ -1,9 +1,8 @@
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, ClassVar
 
 from django import forms
 from django.contrib import admin
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpRequest
@@ -15,6 +14,7 @@ from unfold.admin import ModelAdmin, TabularInline
 from unfold.contrib.import_export.forms import ExportForm, ImportForm
 from unfold.views import UnfoldModelAdminViewMixin
 
+from .images import StudentPhotoField
 from .models import (
     AttendanceRecord,
     AttendanceSession,
@@ -33,12 +33,19 @@ from .resources import StudentResource
 
 @admin.register(Student)
 class StudentAdmin(ImportExportModelAdmin, ModelAdmin):
-    resource_classes = [StudentResource]
+    resource_classes: ClassVar[list[type[StudentResource]]] = [StudentResource]
     import_form_class = ImportForm
     export_form_class = ExportForm
     list_display = ('first_name', 'paternal_surname', 'maternal_surname', 'email')
     search_fields = ('first_name', 'paternal_surname', 'maternal_surname', 'email')
     list_filter = ('student_groups',)
+    formfield_overrides: ClassVar[dict[type[models.Field], dict[str, Any]]] = {
+        models.ImageField: {'form_class': StudentPhotoField}
+    }
+    fieldsets = (
+        (None, {'fields': ('first_name', 'paternal_surname', 'maternal_surname', 'email')}),
+        ('Fotografía', {'fields': ('photo',)}),
+    )
 
 
 @admin.register(Teacher)
@@ -80,7 +87,7 @@ class SchoolCycleAdmin(ModelAdmin):
     list_display = ('name', 'cycle_type', 'start_date', 'end_date')
     list_filter = ('cycle_type',)
     search_fields = ('name',)
-    inlines = [NonSchoolDayInline]
+    inlines: ClassVar[list] = [NonSchoolDayInline]
 
 
 @admin.register(Course)
@@ -94,7 +101,7 @@ class CourseAdmin(ModelAdmin):
         'student_group__name',
         'school_cycle__name',
     )
-    inlines = [ClassScheduleInline]
+    inlines: ClassVar[list] = [ClassScheduleInline]
 
     @admin.display(description='Estudiantes')
     def student_count(self, obj: Course) -> int:
@@ -179,7 +186,7 @@ class ReportsView(UnfoldModelAdminViewMixin, TemplateView):
 class AttendanceSessionAdmin(ModelAdmin):
     list_display = ('course', 'date', 'created_by', 'created_at')
     list_filter = ('course', 'date', 'created_by')
-    inlines = [AttendanceRecordInline]
+    inlines: ClassVar[list] = [AttendanceRecordInline]
 
     def get_urls(self) -> list[URLPattern]:
         return [
