@@ -11,3 +11,6 @@ wheels/
 
 # Database (dev, disposable)
 db.sqlite3
+
+# Environment / secrets (template lives in .env.example)
+.env

@@ -12,20 +12,34 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 
+import environ
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parents[2]
 
+# Environment-based configuration: variables come from the process environment
+# and from an optional .env file at the repo root. Defaults reproduce the
+# previous hardcoded development settings, so a bare checkout works unchanged.
+
+env = environ.Env(
+    DEBUG=(bool, True),
+    ALLOWED_HOSTS=(list, []),
+)
+environ.Env.read_env(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-0i-%3yp(yplp51#me6=rjzmht4%$c^m8y)1e$1u(%o4yvjt5o&'
+SECRET_KEY = env(
+    'SECRET_KEY',
+    default='django-insecure-0i-%3yp(yplp51#me6=rjzmht4%$c^m8y)1e$1u(%o4yvjt5o&',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 
 
 # Application definition
@@ -102,10 +116,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': env.db(
+        'DATABASE_URL',
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+    )
 }
 
 
