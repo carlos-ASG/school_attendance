@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.db import models
 
+from .base import UUIDv7Model
 
-class Teacher(models.Model):
+
+class Teacher(UUIDv7Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

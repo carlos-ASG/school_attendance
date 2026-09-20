@@ -2,11 +2,12 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from .base import UUIDv7Model
 from .course import Course
 from .teacher import Teacher
 
 
-class AttendanceSession(models.Model):
+class AttendanceSession(UUIDv7Model):
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name='sessions', verbose_name='Curso'
     )
@@ -38,12 +39,12 @@ class AttendanceSession(models.Model):
         1. The date must not be in the future (mirrors the rule enforced in
            ``SessionForm``).
         2. Calendar validation (creation-time only, design D6): for a new
-           session (``pk`` is ``None``) the date must fall inside the course's
-           school cycle and must not be a non-school day. Existing sessions are
-           never invalidated or blocked from editing when the calendar changes
-           afterwards — sessions are historical truth. Errors are attached to
-           the ``date`` field and name the offending cycle or non-school day in
-           Spanish.
+           session (``_state.adding`` is ``True``) the date must fall inside
+           the course's school cycle and must not be a non-school day.
+           Existing sessions are never invalidated or blocked from editing
+           when the calendar changes afterwards — sessions are historical
+           truth. Errors are attached to the ``date`` field and name the
+           offending cycle or non-school day in Spanish.
 
         Raises:
             ValidationError: with the errors keyed by field (``date``).
@@ -55,9 +56,11 @@ class AttendanceSession(models.Model):
         super().clean()
         if self.date and self.date > timezone.now().date():
             raise ValidationError({'date': 'La fecha no puede ser posterior a hoy.'})
-        if self.pk is None and self.course_id and self.date:
+        if self._state.adding and self.course_id and self.date:
             # Creation-time-only validation (design D6): existing sessions
             # are never invalidated or blocked by later calendar changes.
+            # _state.adding (not pk is None) because the UUID v7 default
+            # assigns a pk at __init__ for every new instance.
             from ..calendar import validate_session_date
 
             try:

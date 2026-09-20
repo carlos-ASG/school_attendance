@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Q
 
+from .base import UUIDv7Model
+
 # Duration bounds per cycle type, in days (see design D4). The ranges are
 # intentionally generous and overlapping: the type guards against absurd
 # durations, it does not strictly classify.
@@ -23,7 +25,7 @@ def cycle_duration_days(start_date: date, end_date: date) -> int:
     return (end_date - start_date).days
 
 
-class SchoolCycle(models.Model):
+class SchoolCycle(UUIDv7Model):
     class CycleType(models.TextChoices):
         ANNUAL = 'ANNUAL', 'Anual'
         SEMESTRAL = 'SEMESTRAL', 'Semestral'
@@ -84,6 +86,6 @@ class SchoolCycle(models.Model):
         queryset = SchoolCycle.objects.filter(
             start_date__lte=self.end_date, end_date__gte=self.start_date
         )
-        if self.pk is not None:
+        if not self._state.adding:
             queryset = queryset.exclude(pk=self.pk)
         return queryset.first()

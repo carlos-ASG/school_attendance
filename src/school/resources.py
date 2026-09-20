@@ -1,4 +1,5 @@
 from typing import Any
+from uuid import UUID
 
 from django.db.models import QuerySet
 from import_export import resources, widgets
@@ -15,10 +16,10 @@ class NullableIdWidget(widgets.Widget):
         value: Any,
         row: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> int | None:
+    ) -> UUID | None:
         if value is None or str(value).strip() == '':
             return None
-        return int(value)
+        return UUID(str(value))
 
 
 class GroupNameWidget(widgets.ManyToManyWidget):

@@ -1,9 +1,10 @@
 from django.db import models
 
+from .base import UUIDv7Model
 from .student import Student
 
 
-class StudentGroup(models.Model):
+class StudentGroup(UUIDv7Model):
     name = models.CharField('Nombre', max_length=100, unique=True)
     students = models.ManyToManyField(
         Student, related_name='student_groups', blank=True, verbose_name='Estudiantes'

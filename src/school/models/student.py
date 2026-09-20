@@ -1,7 +1,9 @@
 from django.db import models
 
+from .base import UUIDv7Model
 
-class Student(models.Model):
+
+class Student(UUIDv7Model):
     first_name = models.CharField('Nombre', max_length=100)
     paternal_surname = models.CharField('Apellido paterno', max_length=100)
     maternal_surname = models.CharField('Apellido materno', max_length=100)

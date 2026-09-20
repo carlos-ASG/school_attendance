@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -32,8 +32,8 @@ class TodaySessionCreateViewTests(TestCase):
         )
         cls.group.students.add(cls.student)
 
-        cls.teacher_user = User.objects.create_user('profe1', password='pass')
-        cls.other_user = User.objects.create_user('profe2', password='pass')
+        cls.teacher_user = get_user_model().objects.create_user('profe1', password='pass')
+        cls.other_user = get_user_model().objects.create_user('profe2', password='pass')
 
         cls.teacher = Teacher.objects.create(
             first_name='Ana', last_name='García', user=cls.teacher_user
@@ -146,7 +146,7 @@ class SessionUrlGuardTests(TestCase):
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
         )
         cls.group.students.add(cls.student)
-        cls.teacher_user = User.objects.create_user('profe1', password='pass')
+        cls.teacher_user = get_user_model().objects.create_user('profe1', password='pass')
         cls.teacher = Teacher.objects.create(
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
@@ -188,7 +188,7 @@ class SessionUrlGuardTests(TestCase):
         )
 
     def test_other_teacher_cannot_open_session(self):
-        other_user = User.objects.create_user('profe2', password='pass')
+        other_user = get_user_model().objects.create_user('profe2', password='pass')
         Teacher.objects.create(
             first_name='Luis', last_name='Martínez', user=other_user
         )
@@ -207,7 +207,7 @@ class CourseSessionHistoryViewTests(TestCase):
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
         )
         cls.group.students.add(cls.student)
-        cls.teacher_user = User.objects.create_user('profe1', password='pass')
+        cls.teacher_user = get_user_model().objects.create_user('profe1', password='pass')
         cls.teacher = Teacher.objects.create(
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
@@ -353,7 +353,7 @@ class CourseSessionHistoryViewTests(TestCase):
         )
 
     def test_other_teacher_cannot_create_session(self):
-        other_user = User.objects.create_user('profe2', password='pass')
+        other_user = get_user_model().objects.create_user('profe2', password='pass')
         Teacher.objects.create(
             first_name='Luis', last_name='Martínez', user=other_user
         )
@@ -376,7 +376,7 @@ class PreviousSessionDetailViewTests(TestCase):
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
         )
         cls.group.students.add(cls.student)
-        cls.teacher_user = User.objects.create_user('profe1', password='pass')
+        cls.teacher_user = get_user_model().objects.create_user('profe1', password='pass')
         cls.teacher = Teacher.objects.create(
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
@@ -485,7 +485,7 @@ class TodaySessionDetailViewTests(TestCase):
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
         )
         cls.group.students.add(cls.student)
-        cls.teacher_user = User.objects.create_user('profe1', password='pass')
+        cls.teacher_user = get_user_model().objects.create_user('profe1', password='pass')
         cls.teacher = Teacher.objects.create(
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
@@ -547,7 +547,7 @@ class SessionDeleteViewTests(TestCase):
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
         )
         cls.group.students.add(cls.student)
-        cls.teacher_user = User.objects.create_user('profe1', password='pass')
+        cls.teacher_user = get_user_model().objects.create_user('profe1', password='pass')
         cls.teacher = Teacher.objects.create(
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
@@ -608,7 +608,7 @@ class SessionDeleteViewTests(TestCase):
         )
 
     def test_other_teacher_cannot_delete_session(self):
-        other_user = User.objects.create_user('profe2', password='pass')
+        other_user = get_user_model().objects.create_user('profe2', password='pass')
         Teacher.objects.create(
             first_name='Luis', last_name='Martínez', user=other_user
         )
@@ -632,7 +632,7 @@ class CourseDetailViewTests(TestCase):
         )
         cls.group.students.add(cls.student_a, cls.student_b)
 
-        cls.teacher_user = User.objects.create_user('profe3', password='pass')
+        cls.teacher_user = get_user_model().objects.create_user('profe3', password='pass')
         cls.teacher = Teacher.objects.create(
             first_name='Marta', last_name='López', user=cls.teacher_user
         )
@@ -793,7 +793,7 @@ class DashboardViewTests(TestCase):
             first_name='Juan', paternal_surname='Pérez', maternal_surname='Gómez'
         )
         cls.group.students.add(cls.student)
-        cls.teacher_user = User.objects.create_user('profe4', password='pass')
+        cls.teacher_user = get_user_model().objects.create_user('profe4', password='pass')
         cls.teacher = Teacher.objects.create(
             first_name='Marta', last_name='López', user=cls.teacher_user
         )

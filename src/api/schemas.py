@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from ninja import Schema
 
@@ -6,7 +7,7 @@ from school.models import AttendanceRecord
 
 
 class AttendanceRecordIn(Schema):
-    id: int
+    id: UUID
     status: AttendanceRecord.Status
     notes: str
 
@@ -16,14 +17,14 @@ class AttendanceRecordBulkIn(Schema):
 
 
 class AttendanceRecordOut(Schema):
-    id: int
+    id: UUID
     status: AttendanceRecord.Status
     notes: str
     updated_at: datetime
 
 
 class RecordError(Schema):
-    id: int
+    id: UUID
     error: str
 
 

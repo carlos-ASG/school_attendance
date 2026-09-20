@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from django.contrib import admin
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import RequestFactory, TestCase
@@ -421,7 +421,7 @@ class CalendarHelperTests(TestCase):
 class SchoolCycleAdminTests(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.admin_user = User.objects.create_superuser('root', 'root@example.com', 'pass')
+        cls.admin_user = get_user_model().objects.create_superuser('root', 'root@example.com', 'pass')
 
     def setUp(self) -> None:
         self.client.force_login(self.admin_user)

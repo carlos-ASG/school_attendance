@@ -1,12 +1,13 @@
 from django.db import models
 
+from .base import UUIDv7Model
 from .school_cycle import SchoolCycle
 from .student_group import StudentGroup
 from .subject import Subject
 from .teacher import Teacher
 
 
-class Course(models.Model):
+class Course(UUIDv7Model):
     school_cycle = models.ForeignKey(
         SchoolCycle,
         on_delete=models.PROTECT,

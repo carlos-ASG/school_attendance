@@ -2,10 +2,11 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from .attendance_session import AttendanceSession
+from .base import UUIDv7Model
 from .student import Student
 
 
-class AttendanceRecord(models.Model):
+class AttendanceRecord(UUIDv7Model):
     class Status(models.TextChoices):
         PRESENT = 'PRESENT', 'Presente'
         ABSENT = 'ABSENT', 'Ausente'

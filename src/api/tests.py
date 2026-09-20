@@ -1,8 +1,9 @@
 import json
+import uuid
 from datetime import date, timedelta
 from typing import Any
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
@@ -38,9 +39,9 @@ class AttendanceApiTests(TestCase):
             first_name='María', paternal_surname='López', maternal_surname='Díaz'
         )
         cls.group.students.add(cls.student, cls.other_student)
-        cls.teacher_user = User.objects.create_user('profe1', password='pass')
-        cls.other_user = User.objects.create_user('profe2', password='pass')
-        cls.no_teacher_user = User.objects.create_user('sinperfil', password='pass')
+        cls.teacher_user = get_user_model().objects.create_user('profe1', password='pass')
+        cls.other_user = get_user_model().objects.create_user('profe2', password='pass')
+        cls.no_teacher_user = get_user_model().objects.create_user('sinperfil', password='pass')
         cls.teacher = Teacher.objects.create(
             first_name='Ana', last_name='García', user=cls.teacher_user
         )
@@ -96,11 +97,11 @@ class AttendanceApiTests(TestCase):
         record = self.record(self.today_session, self.student)
         response = self.patch(
             self.today_session,
-            [{'id': record.pk, 'status': 'LATE', 'notes': 'Llegó tarde'}],
+            [{'id': str(record.pk), 'status': 'LATE', 'notes': 'Llegó tarde'}],
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(data[0]['id'], record.pk)
+        self.assertEqual(data[0]['id'], str(record.pk))
         self.assertEqual(data[0]['status'], 'LATE')
         self.assertEqual(data[0]['notes'], 'Llegó tarde')
         record.refresh_from_db()
@@ -111,7 +112,7 @@ class AttendanceApiTests(TestCase):
         record = self.record(self.today_session, self.student)
         response = self.patch(
             self.today_session,
-            [{'id': record.pk, 'status': 'ABSENT', 'notes': 'Enfermo'}],
+            [{'id': str(record.pk), 'status': 'ABSENT', 'notes': 'Enfermo'}],
         )
         self.assertEqual(response.status_code, 200)
         record.refresh_from_db()
@@ -122,7 +123,7 @@ class AttendanceApiTests(TestCase):
         record = self.record(self.today_session, self.student)
         response = self.patch(
             self.today_session,
-            [{'id': record.pk, 'status': 'NOPE', 'notes': ''}],
+            [{'id': str(record.pk), 'status': 'NOPE', 'notes': ''}],
         )
         self.assertEqual(response.status_code, 422)
         record.refresh_from_db()
@@ -135,14 +136,14 @@ class AttendanceApiTests(TestCase):
         response = self.patch(
             self.today_session,
             [
-                {'id': valid.pk, 'status': 'EXCUSED', 'notes': 'x'},
-                {'id': foreign.pk, 'status': 'EXCUSED', 'notes': 'y'},
+                {'id': str(valid.pk), 'status': 'EXCUSED', 'notes': 'x'},
+                {'id': str(foreign.pk), 'status': 'EXCUSED', 'notes': 'y'},
             ],
         )
         self.assertEqual(response.status_code, 422)
         self.assertEqual(
             [entry['id'] for entry in response.json()['detail']],
-            [foreign.pk],
+            [str(foreign.pk)],
         )
         valid.refresh_from_db()
         self.assertEqual(valid.status, 'PRESENT')
@@ -151,7 +152,7 @@ class AttendanceApiTests(TestCase):
     def test_unknown_record_rejected(self):
         response = self.patch(
             self.today_session,
-            [{'id': 99999, 'status': 'LATE', 'notes': ''}],
+            [{'id': str(uuid.uuid4()), 'status': 'LATE', 'notes': ''}],
         )
         self.assertEqual(response.status_code, 422)
 
@@ -159,7 +160,7 @@ class AttendanceApiTests(TestCase):
         record = self.record(self.other_teacher_session, self.student)
         response = self.patch(
             self.other_teacher_session,
-            [{'id': record.pk, 'status': 'LATE', 'notes': ''}],
+            [{'id': str(record.pk), 'status': 'LATE', 'notes': ''}],
         )
         self.assertEqual(response.status_code, 404)
         record.refresh_from_db()
@@ -167,8 +168,8 @@ class AttendanceApiTests(TestCase):
 
     def test_nonexistent_session_404(self):
         response = self.patch(
-            AttendanceSession(pk=99999),
-            [{'id': 1, 'status': 'LATE', 'notes': ''}],
+            AttendanceSession(pk=uuid.uuid4()),
+            [{'id': str(uuid.uuid4()), 'status': 'LATE', 'notes': ''}],
         )
         self.assertEqual(response.status_code, 404)
 
@@ -177,8 +178,8 @@ class AttendanceApiTests(TestCase):
         response = self.patch(
             self.today_session,
             [
-                {'id': record.pk, 'status': 'LATE', 'notes': 'first'},
-                {'id': record.pk, 'status': 'ABSENT', 'notes': 'last'},
+                {'id': str(record.pk), 'status': 'LATE', 'notes': 'first'},
+                {'id': str(record.pk), 'status': 'ABSENT', 'notes': 'last'},
             ],
         )
         self.assertEqual(response.status_code, 200)
@@ -190,7 +191,7 @@ class AttendanceApiTests(TestCase):
         record = self.record(self.past_session, self.student)
         response = self.patch(
             self.past_session,
-            [{'id': record.pk, 'status': 'EXCUSED', 'notes': 'Corrección'}],
+            [{'id': str(record.pk), 'status': 'EXCUSED', 'notes': 'Corrección'}],
         )
         self.assertEqual(response.status_code, 200)
         record.refresh_from_db()

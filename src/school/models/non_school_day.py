@@ -4,10 +4,11 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Q
 
+from .base import UUIDv7Model
 from .school_cycle import SchoolCycle
 
 
-class NonSchoolDay(models.Model):
+class NonSchoolDay(UUIDv7Model):
     class DayType(models.TextChoices):
         ASUETO = 'ASUETO', 'Asueto'
         VACACIONES = 'VACACIONES', 'Vacaciones'

@@ -1,10 +1,11 @@
 from django.db import models
 from django.db.models import Q
 
+from .base import UUIDv7Model
 from .course import Course
 
 
-class ClassSchedule(models.Model):
+class ClassSchedule(UUIDv7Model):
     class Weekday(models.IntegerChoices):
         MONDAY = 0, 'Lunes'
         TUESDAY = 1, 'Martes'
