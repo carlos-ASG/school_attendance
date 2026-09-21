@@ -32,4 +32,4 @@ requires = ["uv_build>=0.12.12,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["config", "accounts", "school", "teachers", "core_ui", "api"]
+module-name = ["config", "accounts", "school", "teacher_panel", "core_ui", "api", "credentials", "integrations"]

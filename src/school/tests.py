@@ -756,14 +756,14 @@ class TeacherPanelPhotoExclusionTests(TestCase):
         self.assertNotContains(response, '/media/')
 
     def test_dashboard_has_no_photo_references(self) -> None:
-        self.assert_no_photo_references(reverse('teachers:dashboard'))
+        self.assert_no_photo_references(reverse('teacher_panel:dashboard'))
 
     def test_course_detail_has_no_photo_references(self) -> None:
         self.assert_no_photo_references(
-            reverse('teachers:course_detail', args=[self.course.pk]), 'Pérez'
+            reverse('teacher_panel:course_detail', args=[self.course.pk]), 'Pérez'
         )
 
     def test_session_detail_has_no_photo_references(self) -> None:
         self.assert_no_photo_references(
-            reverse('teachers:session_detail', args=[self.session.pk]), 'Pérez'
+            reverse('teacher_panel:session_detail', args=[self.session.pk]), 'Pérez'
         )

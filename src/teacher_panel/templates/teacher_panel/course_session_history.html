@@ -1,0 +1,88 @@
+{% extends "teacher_panel/base.html" %}
+
+{% block title %}{{ course.subject }} — Historial de sesiones — Panel del Profesor{% endblock %}
+
+{% block breadcrumb %}
+    <c-breadcrumb>
+        <c-breadcrumb.item href="{% url 'teacher_panel:dashboard' %}">
+            <c-icon.house class="size-4"/>
+        </c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item href="{% url 'teacher_panel:course_detail' course.pk %}">{{ course.subject }}</c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item>Historial de sesiones</c-breadcrumb.item>
+    </c-breadcrumb>
+{% endblock %}
+
+{% block content %}
+    <c-layout.surface>
+        <c-slot name="header">
+            <div class="flex flex-col gap-1">
+                <h2 class="text-xl font-semibold tracking-tight">{{ course.subject }} — Historial de sesiones</h2>
+                <p class="text-sm text-muted-foreground">{{ course.student_group }}</p>
+            </div>
+
+            <c-dialog default_open="{{ form.errors|yesno:'true,false' }}">
+                <c-dialog.trigger>
+                    <c-button type="button">
+                        <c-icon.plus />
+                        Crear sesión
+                    </c-button>
+                </c-dialog.trigger>
+
+                <c-dialog.content>
+                    <c-dialog.header>
+                        <c-dialog.title>Crear sesión en otra fecha</c-dialog.title>
+                        <c-dialog.description>
+                            Registra una sesión de {{ course.subject }} para una fecha anterior a hoy. Se crearán los registros de asistencia.
+                        </c-dialog.description>
+                    </c-dialog.header>
+
+                    <div id="session-form">
+                        {% partialdef session_create_form inline %}
+                        <form method="post"
+                              hx-post="{% url 'teacher_panel:course_session_history' course.pk %}"
+                              hx-target="#session-form" hx-swap="innerHTML"
+                              class="flex flex-col gap-4">
+                            {% csrf_token %}
+                            <div class="flex flex-col gap-2">
+                                <c-label for="{{ form.date.id_for_label }}">Fecha</c-label>
+                                {{ form.date }}
+                                {% if form.date.errors %}
+                                    <ul class="errorlist text-sm text-destructive">{{ form.date.errors }}</ul>
+                                {% endif %}
+                            </div>
+
+                            <c-dialog.footer>
+                                <c-dialog.close variant="outline">Cancelar</c-dialog.close>
+                                <c-button type="submit">
+                                    <c-icon.plus />
+                                    Crear sesión
+                                </c-button>
+                            </c-dialog.footer>
+                        </form>
+                        {% endpartialdef session_create_form %}
+                    </div>
+                </c-dialog.content>
+            </c-dialog>
+        </c-slot>
+
+        <div id="session-list">
+            {% partialdef session_list inline %}<c-detail_list header_label="Fecha" header_value="Creación">
+    {% for session in sessions %}
+        <c-detail_list.item>
+            <c-slot name="label_slot">
+                <c-quiet_text href="{% url 'teacher_panel:session_detail' session.pk %}">
+                    {{ session.date }}
+                </c-quiet_text>
+            </c-slot>
+            {{ session.created_at }}
+        </c-detail_list.item>
+    {% empty %}
+        <c-detail_list.item>Aún no hay sesiones registradas.</c-detail_list.item>
+    {% endfor %}
+</c-detail_list>
+{% endpartialdef session_list %}
+        </div>
+    </c-layout.surface>
+{% endblock %}

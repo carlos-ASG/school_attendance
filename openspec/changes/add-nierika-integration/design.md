@@ -36,11 +36,16 @@ Restricciones verificadas en el código:
 
 ## Decisions
 
-### D1. App dedicada `integrations`
+### D1. App core `credentials` + app de integraciones `integrations`
 
-Todo lo nuevo vive en `src/integrations/`: modelos (`Credential`, `StudentCredential`, `DesktopApiKey`), cliente HTTP de sync, management commands y tests. Los endpoints de escritorio se montan como router adicional dentro de la app `api` existente (que ya concentra la API ninja), importando modelos de `integrations`.
+Dos apps con responsabilidades separadas:
 
-Alternativa descartada: meter los modelos en `school`. Mezclaría el dominio académico con integración externa y ensuciaría las migraciones del core.
+- `src/credentials/` — dominio core de gestión de credenciales: espejo (`Credential`), relación estudiante-credencial (`StudentCredential`) y la lógica de aplicación de eventos push (`events.py`). No sabe nada de Nierika: un emisor futuro distinto (otra vía de emisión) escribiría en este mismo dominio vía `events.py` o su propio sync, sin tocar código de integración.
+- `src/integrations/` — integraciones externas y estaciones: cliente HTTP de Nierika (`nierika.py`) + `sync_nierika_credentials`, y API keys del escritorio (`DesktopApiKey`, `keys.py`, commands de ciclo de vida).
+
+Los endpoints de escritorio se montan como router adicional dentro de la app `api` existente (que ya concentra la API ninja), importando `events` de `credentials` y `DesktopApiKey` de `integrations`.
+
+Alternativas descartadas: meter los modelos en `school` (mezclaría el dominio académico con credenciales y ensuciaría las migraciones del core) y un único app `integrations` conteniendo los modelos de credenciales (acoplaría el dominio core al emisor: la gestión de credenciales debe sobrevivir a cualquier cambio de proveedor).
 
 ### D2. Espejo de credenciales: hechos crudos + estado derivado
 
@@ -84,6 +89,14 @@ Nuevo `DesktopApiKeyAuth(APIKeyHeader)` (header `X-API-Key`) aplicado a un `Rout
 
 `GET /api/desktop/students` devuelve por estudiante: `id`, `first_name`, `paternal_surname`, `maternal_surname`, `email`, grupos (nombres), `has_photo` y `photo_url` (ruta del endpoint protegido, relativa). El escritorio descarga las fotos que le interesen con la misma key y las gestiona localmente (su autoridad sobre fotos sigue siendo la estación, como en su esquema híbrido actual).
 
+### D8. Operaciones asíncronas en el escritorio
+
+Las tres operaciones del router de escritorio (`/students`, `/students/{id}/photo`, `/credential-events`) son vistas `async def`. django-ninja las soporta nativamente y ejecuta la auth síncrona (`DesktopApiKeyAuth`) en un threadpool vía `sync_to_async` sin cambios. La aplicación de eventos permanece síncrona en `credentials/events.py` — Django 6.1 no soporta `async with transaction.atomic()` y la atomicidad es requisito de la spec — y se invoca desde la vista con `sync_to_async(...)`, el mismo patrón que usan internamente los métodos async del ORM (`aget`, `aupdate`, …). La iteración del padrón es async sobre el queryset con `prefetch_related` (la caché aplica) y la lectura de disco de fotos se envuelve en `sync_to_async`. Nota de despliegue: el beneficio de concurrencia real requiere servidor ASGI (uvicorn/daphne); bajo `runserver`/WSGI Django adapta las vistas async sin cambio de comportamiento.
+
+### D9. Estructura interna de la app `api`
+
+La app `api` separa wiring de contenido: `api.py` solo instancia `NinjaAPI` y monta routers; los endpoints viven en `api/endpoints/` (`attendance.py` con la operación de profesores, montada en `''` y heredando el `TeacherSessionAuth` del nivel API; `credentials.py` —antes `desktop.py—` con el flujo de emisión de credenciales del escritorio, montado en `/desktop` con `DesktopApiKeyAuth`); los schemas viven en `api/schemas/` en dos archivos temáticos (`attendance.py`, `credentials.py`) re-exportados por el `__init__` del paquete. Los nombres de URL no cambian (`api:update_session_records`, `api:list_students`, …).
+
 ## Risks / Trade-offs
 
 - [Push perdido deja el espejo desactualizado hasta el próximo cron] → Mitigación: cron de reconciliación frecuente; descarga completa idempotente como reparación (mecanismo explícito del design de Nierika). Aceptable por consistencia eventual.
@@ -96,7 +109,7 @@ Nuevo `DesktopApiKeyAuth(APIKeyHeader)` (header `X-API-Key`) aplicado a un `Rout
 
 ## Migration Plan
 
-1. Crear la app `integrations` con sus modelos y migración (tablas nuevas; sin tocar datos existentes).
+1. Crear las apps `credentials` (modelos del espejo + eventos) e `integrations` (DesktopApiKey, cliente y commands) con sus migraciones (tablas nuevas; sin tocar datos existentes).
 2. `uv run manage.py migrate`.
 3. Configurar `NIERIKA_API_BASE_URL` y `NIERIKA_API_KEY` (del portal del emisor en Nierika) en el entorno.
 4. Generar key(s) del escritorio: `uv run manage.py create_desktop_api_key --name "estacion-x"` y configurarla en la app de escritorio.

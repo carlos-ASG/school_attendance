@@ -24,6 +24,8 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 env = environ.Env(
     DEBUG=(bool, True),
     ALLOWED_HOSTS=(list, []),
+    NIERIKA_API_BASE_URL=(str, ''),
+    NIERIKA_API_KEY=(str, ''),
 )
 environ.Env.read_env(BASE_DIR / '.env')
 
@@ -66,8 +68,10 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'school',
-    'teachers',
+    'teacher_panel',
     'api',
+    'credentials',
+    'integrations',
     'django.forms',
 ]
 
@@ -148,7 +152,7 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'es'
 
 LOGIN_URL = 'account_login'
-LOGIN_REDIRECT_URL = 'teachers:dashboard'
+LOGIN_REDIRECT_URL = 'teacher_panel:dashboard'
 LOGOUT_REDIRECT_URL = 'account_login'
 
 # django-allauth
@@ -256,3 +260,11 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+
+# Nierika integration (credential mirror sync). Without NIERIKA_API_KEY the
+# credential sync is a no-op; both default to empty strings.
+
+NIERIKA_API_BASE_URL = env('NIERIKA_API_BASE_URL')
+
+NIERIKA_API_KEY = env('NIERIKA_API_KEY')

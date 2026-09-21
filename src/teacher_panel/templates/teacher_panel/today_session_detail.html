@@ -1,0 +1,193 @@
+{% extends "teacher_panel/base.html" %}
+
+{% block title %}{{ session.course.subject }} — Sesión de hoy — Panel del Profesor{% endblock %}
+
+{% block breadcrumb %}
+    <c-breadcrumb>
+        <c-breadcrumb.item href="{% url 'teacher_panel:dashboard' %}">
+            <c-icon.house class="size-4"/>
+        </c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item href="{% url 'teacher_panel:course_detail' session.course.pk %}">{{ session.course.subject }}</c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item>Sesión de hoy</c-breadcrumb.item>
+    </c-breadcrumb>
+{% endblock %}
+
+{% block content %}
+    {% partial session_header %}
+{% endblock %}
+{% partialdef session_header %}
+<c-layout.surface>
+    <c-slot name="header">
+        <div class="flex flex-col gap-1">
+            <h2 class="text-xl font-semibold tracking-tight">{{ session.course.subject }} — {{ session.date }}</h2>
+            <p class="text-sm text-muted-foreground">
+                {{ session.course.student_group }}
+                {% if session.course.classroom %}· Salón: {{ session.course.classroom }}{% endif %}
+                · Creada por: {{ session.created_by }}
+            </p>
+        </div>
+        <c-alert-dialog>
+            <c-alert-dialog.trigger>
+                <c-button variant="ghost" type="button" size="icon" aria-label="Eliminar sesión"
+                          class="border border-transparent bg-transparent focus:bg-muted active:bg-muted">
+                    <c-icon.trash />
+                </c-button>
+            </c-alert-dialog.trigger>
+
+            <c-alert-dialog.content>
+                <c-alert-dialog.header>
+                    <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
+                    <c-alert-dialog.description>
+                        Esta acción eliminará la sesión y todos sus registros de asistencia. No se puede deshacer.
+                    </c-alert-dialog.description>
+                </c-alert-dialog.header>
+
+                <c-alert-dialog.footer>
+                    <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
+                    <c-alert-dialog.action variant="destructive"
+                                           hx-post="{% url 'teacher_panel:session_delete' session.pk %}"
+                                           hx-swap="none">
+                        Eliminar
+                    </c-alert-dialog.action>
+                </c-alert-dialog.footer>
+            </c-alert-dialog.content>
+        </c-alert-dialog>
+    </c-slot>
+
+    <div id="attendance-panel">
+        <div x-data="attendancePanel" @beforeunload.window="handleBeforeUnload($event)">
+            <form @submit.prevent="save">
+                <c-table>
+                    <c-table.header>
+                        <c-table.head>Estudiante</c-table.head>
+                        <c-table.head>Estado</c-table.head>
+                        <c-table.head>Notas</c-table.head>
+                    </c-table.header>
+                    <c-table.body>
+                        <template x-for="record in records" :key="record.id">
+                            <c-table.row>
+                                <c-table.cell x-text="record.student"></c-table.cell>
+                                <c-table.cell>
+                                    <button
+                                        type="button"
+                                        :id="'record-status-' + record.id"
+                                        :class="'status-btn status-' + record.status.toLowerCase()"
+                                        @click="cycle(record)"
+                                        x-text="statusLabels[record.status]"
+                                    ></button>
+                                </c-table.cell>
+                                <c-table.cell>
+                                    <c-textarea
+                                        rows="2"
+                                        placeholder="Nota opcional"
+                                        x-model="record.notes"
+                                        @change="markPending(record)"
+                                    ></c-textarea>
+                                </c-table.cell>
+                            </c-table.row>
+                        </template>
+                        <c-table.row x-cloak x-show="records.length === 0">
+                            <c-table.cell colspan="3">No hay registros de asistencia.</c-table.cell>
+                        </c-table.row>
+                    </c-table.body>
+                </c-table>
+
+                <div class="mt-4 flex items-center gap-3">
+                    <c-button type="submit" ::disabled="pendingCount === 0 || saving">
+                        <c-icon.circle_check />
+                        Guardar cambios
+                    </c-button>
+                    <c-badge variant="secondary" x-cloak x-show="pendingCount > 0">
+                        <span x-text="pendingCount + ' sin guardar'"></span>
+                    </c-badge>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <c-toast id="toast-save-ok">
+        <c-toast.content title="Asistencia guardada" description="Los cambios de asistencia se han guardado correctamente."/>
+    </c-toast>
+    <c-toast id="toast-save-error">
+        <c-toast.content type="destructive" title="Error al guardar" description="No se pudo guardar la asistencia. Inténtalo de nuevo."/>
+    </c-toast>
+
+    {{ records|json_script:"attendance-records-data" }}
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('attendancePanel', () => ({
+                records: [],
+                pending: {},
+                saving: false,
+                statusLabels: {
+                    PRESENT: 'Presente',
+                    ABSENT: 'Ausente',
+                    LATE: 'Tarde',
+                    EXCUSED: 'Justificado',
+                },
+                statusCycle: {
+                    PRESENT: 'ABSENT',
+                    ABSENT: 'LATE',
+                    LATE: 'EXCUSED',
+                    EXCUSED: 'PRESENT',
+                },
+
+                init() {
+                    const data = document.getElementById('attendance-records-data');
+                    this.records = JSON.parse(data.textContent);
+                },
+
+                get pendingCount() {
+                    return Object.keys(this.pending).length;
+                },
+
+                cycle(record) {
+                    record.status = this.statusCycle[record.status] ?? 'PRESENT';
+                    this.markPending(record);
+                },
+
+                markPending(record) {
+                    this.pending[record.id] = {
+                        id: record.id,
+                        status: record.status,
+                        notes: record.notes,
+                    };
+                },
+
+                async save() {
+                    if (this.pendingCount === 0 || this.saving) return;
+                    this.saving = true;
+                    try {
+                        const response = await fetch('{{ save_url }}', {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}',
+                            },
+                            body: JSON.stringify({ records: Object.values(this.pending) }),
+                        });
+                        if (!response.ok) {
+                            throw new Error('save failed');
+                        }
+                        this.pending = {};
+                        this.$dispatch('show-toast', 'toast-save-ok');
+                    } catch (error) {
+                        this.$dispatch('show-toast', 'toast-save-error');
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+
+                handleBeforeUnload(event) {
+                    if (this.pendingCount > 0) {
+                        event.preventDefault();
+                        event.returnValue = '';
+                    }
+                },
+            }));
+        });
+    </script>
+</c-layout.surface>
+{% endpartialdef session_header %}

@@ -1,0 +1,149 @@
+{% extends "teacher_panel/base.html" %}
+
+{% block title %}{{ session.course.subject }} — {{ session.date }} — Panel del Profesor{% endblock %}
+
+{% block breadcrumb %}
+    <c-breadcrumb>
+        <c-breadcrumb.item href="{% url 'teacher_panel:dashboard' %}">
+            <c-icon.house class="size-4"/>
+        </c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item href="{% url 'teacher_panel:course_detail' session.course.pk %}">{{ session.course.subject }}</c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item href="{% url 'teacher_panel:course_session_history' session.course.pk %}">Historial de sesiones</c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item>{{ session.date }}</c-breadcrumb.item>
+    </c-breadcrumb>
+{% endblock %}
+
+{% block content %}
+    <c-layout.surface>
+        <c-slot name="header">
+            {% partial session_header %}
+        </c-slot>
+
+        <div id="attendance-panel">
+            {% if edit_mode %}
+                {% partial attendance_edit_form %}
+            {% else %}
+                {% partial attendance_readonly %}
+            {% endif %}
+        </div>
+    </c-layout.surface>
+{% endblock %}
+{% partialdef session_header %}<div class="flex flex-col gap-1">
+    <h2 class="text-xl font-semibold tracking-tight">{{ session.course.subject }} — {{ session.date }}</h2>
+    <p class="text-sm text-muted-foreground">
+        {{ session.course.student_group }} · Creada por {{ session.created_by }}
+    </p>
+</div>
+
+<div class="flex items-center gap-2">
+    {% if not edit_mode %}
+        <c-button href="?edit=1" variant="ghost" size="icon" aria-label="Editar sesión"
+                  class="border border-transparent bg-transparent focus:bg-muted active:bg-muted">
+            <c-icon.square-pen />
+        </c-button>
+    {% endif %}
+
+    <c-alert-dialog>
+        <c-alert-dialog.trigger>
+            <c-button variant="ghost" type="button" size="icon" aria-label="Eliminar sesión"
+                      class="border border-transparent bg-transparent focus:bg-muted active:bg-muted">
+                <c-icon.trash />
+            </c-button>
+        </c-alert-dialog.trigger>
+
+        <c-alert-dialog.content>
+            <c-alert-dialog.header>
+                <c-alert-dialog.title>¿Eliminar sesión?</c-alert-dialog.title>
+                <c-alert-dialog.description>
+                    Esta acción eliminará la sesión del {{ session.date }} y todos sus registros de asistencia. No se puede deshacer.
+                </c-alert-dialog.description>
+            </c-alert-dialog.header>
+
+            <c-alert-dialog.footer>
+                <c-alert-dialog.cancel>Cancelar</c-alert-dialog.cancel>
+                <form method="post" action="{% url 'teacher_panel:session_delete' session.pk %}">
+                    {% csrf_token %}
+                    <c-alert-dialog.action type="submit" variant="destructive">Eliminar</c-alert-dialog.action>
+                </form>
+            </c-alert-dialog.footer>
+        </c-alert-dialog.content>
+    </c-alert-dialog>
+</div>
+{% endpartialdef session_header %}{% partialdef attendance_edit_form %}<form method="post"
+      hx-post="{% url 'teacher_panel:session_detail' session.pk %}"
+      hx-target="#attendance-panel" hx-swap="innerHTML">
+    {% csrf_token %}
+    {{ formset.management_form }}
+    <c-table>
+    <c-table.header>
+        <c-table.head>Estudiante</c-table.head>
+        <c-table.head>Estado</c-table.head>
+        <c-table.head>Notas</c-table.head>
+    </c-table.header>
+    <c-table.body>
+        {% for form in formset %}
+            <c-table.row>
+                <c-table.cell>{{ form.instance.student }}</c-table.cell>
+                <c-table.cell>
+                    {{ form.id }}
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                        <ul class="errorlist">{{ form.status.errors }}</ul>
+                    {% endif %}
+                </c-table.cell>
+                <c-table.cell>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <ul class="errorlist">{{ form.notes.errors }}</ul>
+                    {% endif %}
+                </c-table.cell>
+            </c-table.row>
+        {% empty %}
+            <c-table.row>
+                <c-table.cell colspan="3">No hay registros de asistencia.</c-table.cell>
+            </c-table.row>
+        {% endfor %}
+    </c-table.body>
+</c-table>
+
+    <c-button type="submit">
+        <c-icon.circle_check />
+        Guardar cambios
+    </c-button>
+    <a href="{% url 'teacher_panel:session_detail' session.pk %}"
+       class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground">
+        Salir de edición
+    </a>
+</form>
+{% endpartialdef attendance_edit_form %}{% partialdef attendance_readonly %}<ul class="messages">
+    {% if messages %}
+        {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    {% endif %}
+</ul>
+
+<c-table>
+    <c-table.header>
+        <c-table.head>Estudiante</c-table.head>
+        <c-table.head>Estado</c-table.head>
+        <c-table.head>Notas</c-table.head>
+    </c-table.header>
+    <c-table.body>
+        {% for record in session.records.all %}
+            <c-table.row>
+                <c-table.cell>{{ record.student }}</c-table.cell>
+                <c-table.cell>{{ record.get_status_display }}</c-table.cell>
+                <c-table.cell>{{ record.notes|default:"—" }}</c-table.cell>
+            </c-table.row>
+        {% empty %}
+            <c-table.row>
+                <c-table.cell colspan="3">No hay registros de asistencia.</c-table.cell>
+            </c-table.row>
+        {% endfor %}
+    </c-table.body>
+</c-table>
+{% endpartialdef attendance_readonly %}

@@ -4,8 +4,8 @@ El ecosistema Nierika gestiona las credenciales digitales de los estudiantes (em
 
 ## What Changes
 
-- Nueva app Django `integrations`: espejo local del catálogo de credenciales de Nierika (`Credential`), relación estudiante-credencial (`StudentCredential`) y API keys emitidas por Django para las estaciones de escritorio (`DesktopApiKey`).
-- Cliente HTTP + management command `sync_nierika_credentials` que descarga el catálogo completo del emisor desde `GET {NIERIKA_API_BASE_URL}/api/integrations/me/credentials` (paginado por cursor, upsert idempotente por id). **No-op si `NIERIKA_API_KEY` no está configurada.**
+- Nueva app Django `credentials` (dominio core de gestión de credenciales): espejo local del catálogo de credenciales (`Credential`), relación estudiante-credencial (`StudentCredential`) y la lógica de aplicación de eventos (`events.py`). No depende de Nierika: un emisor futuro distinto escribiría en este mismo dominio.
+- Nueva app Django `integrations` (dominio de integraciones externas): cliente HTTP + management command `sync_nierika_credentials` que descarga el catálogo del emisor desde `GET {NIERIKA_API_BASE_URL}/api/integrations/me/credentials` (paginado por cursor, upsert idempotente por id) y API keys emitidas por Django para las estaciones de escritorio (`DesktopApiKey`, `keys.py`, commands de ciclo de vida). **No-op si `NIERIKA_API_KEY` no está configurada.**
 - Polling de reconciliación por cron del sistema que ejecuta el command de forma ocasional (reparación de pushes perdidos), solo cuando la API key está configurada.
 - Nueva autenticación API key para el escritorio: header `X-API-Key` con key emitida por Django (hash SHA-256 + prefijo, show-once, revocable), gestionada vía management commands.
 - Nuevos endpoints de API (django-ninja, protegidos por la key del escritorio):
@@ -28,7 +28,7 @@ El ecosistema Nierika gestiona las credenciales digitales de los estudiantes (em
 
 ## Impact
 
-- **Nueva app**: `src/integrations/` (modelos, cliente de sync, management commands, tests); se agrega a `INSTALLED_APPS` y a `module-name` en `pyproject.toml`.
+- **Nuevas apps**: `src/credentials/` (dominio core: modelos `Credential`/`StudentCredential`, aplicación de eventos, tests) y `src/integrations/` (integración Nierika + API keys de escritorio: cliente, commands, `keys.py`, tests); ambas se agregan a `INSTALLED_APPS` y a `module-name` en `pyproject.toml`.
 - **App `api`**: nuevo router `/api/desktop/*` con auth `DesktopApiKeyAuth` (coexiste con el `TeacherSessionAuth` existente).
 - **Configuración**: settings nuevos en `src/config/settings.py` (patrón `environ` existente).
 - **Despliegue**: entrada de cron documentada para `uv run manage.py sync_nierika_credentials`; generación de keys del escritorio con management commands.
