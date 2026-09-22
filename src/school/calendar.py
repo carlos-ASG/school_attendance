@@ -8,8 +8,13 @@ from datetime import date
 
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.utils import timezone
 
 from .models import NonSchoolDay, SchoolCycle
+
+SESSION_FROZEN_MESSAGE = (
+    'Esta sesión pertenece a un ciclo anterior y es de solo lectura.'
+)
 
 
 def get_active_cycle(value: date) -> SchoolCycle | None:
@@ -33,6 +38,22 @@ def get_non_school_day(cycle: SchoolCycle | None, value: date) -> NonSchoolDay |
         .order_by('pk')
         .first()
     )
+
+
+def session_is_frozen(session, value: date | None = None) -> bool:
+    """Return True when `session` is read-only for its Teacher (design D1).
+
+    A session is frozen when its course's School Cycle does not contain today,
+    or when the course has no cycle at all. When today falls in a gap between
+    cycles every session is frozen. `value` may be pre-computed by the caller
+    to avoid a repeated ``timezone.now()`` call.
+    """
+    if value is None:
+        value = timezone.now().date()
+    course = session.course
+    if course.school_cycle_id is None:
+        return True
+    return not course.school_cycle.contains_date(value)
 
 
 def validate_session_date(

@@ -11,6 +11,7 @@ from school.models import (
     AttendanceSession,
     Course,
     NonSchoolDay,
+    SchoolCycle,
     Student,
     StudentGroup,
     Subject,
@@ -386,6 +387,16 @@ class PreviousSessionDetailViewTests(TestCase):
             school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
+        cls.past_cycle = make_cycle(
+            'Ciclo pasado',
+            cycle_type=SchoolCycle.CycleType.QUATRIMESTRAL,
+            start=days_from_today(-200),
+            end=days_from_today(-110),
+        )
+        cls.past_course = Course.objects.create(
+            school_cycle=cls.past_cycle,
+            student_group=cls.group, teacher=cls.teacher, subject=cls.subject
+        )
 
     def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
@@ -393,6 +404,13 @@ class PreviousSessionDetailViewTests(TestCase):
     def make_session(self, date: str | None = None) -> AttendanceSession:
         session = AttendanceSession.objects.create(
             course=self.course, date=date or days_from_today(-1), created_by=self.teacher
+        )
+        create_attendance_records(session)
+        return session
+
+    def make_frozen_session(self) -> AttendanceSession:
+        session = AttendanceSession.objects.create(
+            course=self.past_course, date=days_from_today(-150), created_by=self.teacher
         )
         create_attendance_records(session)
         return session
@@ -476,6 +494,49 @@ class PreviousSessionDetailViewTests(TestCase):
         record.refresh_from_db()
         self.assertNotEqual(record.status, 'BOGUS')
 
+    def test_frozen_session_stays_read_only_with_edit_flag(self):
+        session = self.make_frozen_session()
+        url = reverse('teacher_panel:session_detail', args=[session.pk])
+        response = self.client.get(url, {'edit': '1'})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '<select')
+        self.assertNotContains(response, 'name="form-0-status"')
+
+    def test_frozen_session_shows_read_only_notice_and_hides_actions(self):
+        session = self.make_frozen_session()
+        url = reverse('teacher_panel:session_detail', args=[session.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Sesión de solo lectura')
+        self.assertContains(response, 'Entendido')
+        self.assertNotContains(response, '?edit=1')
+        self.assertNotContains(response, 'Eliminar sesión')
+
+    def test_frozen_session_batch_edit_rejected_htmx(self):
+        session = self.make_frozen_session()
+        record = session.records.first()
+        url = reverse('teacher_panel:session_detail', args=[session.pk])
+        response = self.client.post(
+            url,
+            self.formset_data(session, **{'form-0-status': 'ABSENT'}),
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'solo lectura')
+        record.refresh_from_db()
+        self.assertEqual(record.status, AttendanceRecord.Status.PRESENT)
+
+    def test_frozen_session_batch_edit_rejected_without_htmx(self):
+        session = self.make_frozen_session()
+        record = session.records.first()
+        url = reverse('teacher_panel:session_detail', args=[session.pk])
+        response = self.client.post(
+            url, self.formset_data(session, **{'form-0-status': 'ABSENT'})
+        )
+        self.assertEqual(response.status_code, 302)
+        record.refresh_from_db()
+        self.assertEqual(record.status, AttendanceRecord.Status.PRESENT)
+
 
 class TodaySessionDetailViewTests(TestCase):
     @classmethod
@@ -495,7 +556,6 @@ class TodaySessionDetailViewTests(TestCase):
             school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
-
     def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
 
@@ -557,6 +617,16 @@ class SessionDeleteViewTests(TestCase):
             school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
+        cls.past_cycle = make_cycle(
+            'Ciclo pasado',
+            cycle_type=SchoolCycle.CycleType.QUATRIMESTRAL,
+            start=days_from_today(-200),
+            end=days_from_today(-110),
+        )
+        cls.past_course = Course.objects.create(
+            school_cycle=cls.past_cycle,
+            student_group=cls.group, teacher=cls.teacher, subject=cls.subject
+        )
 
     def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
@@ -564,6 +634,13 @@ class SessionDeleteViewTests(TestCase):
     def make_session(self, date: str) -> AttendanceSession:
         session = AttendanceSession.objects.create(
             course=self.course, date=date, created_by=self.teacher
+        )
+        create_attendance_records(session)
+        return session
+
+    def make_frozen_session(self) -> AttendanceSession:
+        session = AttendanceSession.objects.create(
+            course=self.past_course, date=days_from_today(-150), created_by=self.teacher
         )
         create_attendance_records(session)
         return session
@@ -606,6 +683,25 @@ class SessionDeleteViewTests(TestCase):
             reverse('teacher_panel:course_session_history', args=[self.course.pk]),
             fetch_redirect_response=False,
         )
+
+    def test_frozen_session_delete_htmx_is_rejected(self):
+        session = self.make_frozen_session()
+        url = reverse('teacher_panel:session_delete', args=[session.pk])
+        response = self.client.post(url, HTTP_HX_REQUEST='true')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(AttendanceSession.objects.filter(pk=session.pk).exists())
+
+    def test_frozen_session_delete_without_htmx_is_rejected(self):
+        session = self.make_frozen_session()
+        url = reverse('teacher_panel:session_delete', args=[session.pk])
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(
+            response,
+            reverse('teacher_panel:course_session_history', args=[self.past_course.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(AttendanceSession.objects.filter(pk=session.pk).exists())
 
     def test_other_teacher_cannot_delete_session(self):
         other_user = get_user_model().objects.create_user('profe2', password='pass')

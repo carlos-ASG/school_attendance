@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.views.generic import DetailView
 from django_htmx.http import retarget
 
+from school.calendar import SESSION_FROZEN_MESSAGE, session_is_frozen
 from school.models import AttendanceSession
 
 from ..forms import AttendanceEditFormSet
@@ -25,7 +26,7 @@ class PreviousSessionDetailView(TeacherRequiredMixin, DetailView):
 
     def get_queryset(self) -> QuerySet[AttendanceSession]:
         return AttendanceSession.objects.filter(course__teacher=self.teacher).select_related(
-            'course__subject', 'course__student_group', 'created_by'
+            'course__subject', 'course__student_group', 'course__school_cycle', 'created_by'
         )
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
@@ -39,7 +40,10 @@ class PreviousSessionDetailView(TeacherRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        context['edit_mode'] = self.request.GET.get('edit') == '1'
+        context['session_is_editable'] = not session_is_frozen(self.object)
+        context['edit_mode'] = (
+            context['session_is_editable'] and self.request.GET.get('edit') == '1'
+        )
         if context['edit_mode']:
             context['formset'] = AttendanceEditFormSet(
                 queryset=self.object.records.select_related('student')
@@ -51,6 +55,13 @@ class PreviousSessionDetailView(TeacherRequiredMixin, DetailView):
         if self.object.date == timezone.now().date():
             return HttpResponseRedirect(
                 reverse('teacher_panel:today_session_detail', args=[self.object.pk])
+            )
+        if session_is_frozen(self.object):
+            messages.error(request, SESSION_FROZEN_MESSAGE)
+            if request.htmx:
+                return retarget(self._render_readonly(request), '#attendance-panel')
+            return HttpResponseRedirect(
+                reverse('teacher_panel:session_detail', args=[self.object.pk])
             )
         formset = AttendanceEditFormSet(
             request.POST,

@@ -20,6 +20,7 @@ from school.models import (
     AttendanceRecord,
     AttendanceSession,
     Course,
+    SchoolCycle,
     Student,
     StudentGroup,
     Subject,
@@ -78,6 +79,20 @@ class AttendanceApiTests(TestCase):
             course=cls.other_course, date=days_from_today(0), created_by=cls.other_teacher
         )
         create_attendance_records(cls.other_teacher_session)
+        cls.past_cycle = make_cycle(
+            'Ciclo pasado',
+            cycle_type=SchoolCycle.CycleType.QUATRIMESTRAL,
+            start=days_from_today(-200),
+            end=days_from_today(-110),
+        )
+        cls.past_course = Course.objects.create(
+            student_group=cls.group, teacher=cls.teacher, subject=cls.subject,
+            school_cycle=cls.past_cycle,
+        )
+        cls.frozen_session = AttendanceSession.objects.create(
+            course=cls.past_course, date=days_from_today(-150), created_by=cls.teacher
+        )
+        create_attendance_records(cls.frozen_session)
 
     def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
@@ -203,6 +218,17 @@ class AttendanceApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         record.refresh_from_db()
         self.assertEqual(record.status, 'EXCUSED')
+
+    def test_frozen_session_update_rejected(self):
+        record = self.record(self.frozen_session, self.student)
+        response = self.patch(
+            self.frozen_session,
+            [{'id': str(record.pk), 'status': 'LATE', 'notes': 'No debería guardarse'}],
+        )
+        self.assertEqual(response.status_code, 422)
+        record.refresh_from_db()
+        self.assertEqual(record.status, 'PRESENT')
+        self.assertEqual(record.notes, '')
 
     def test_anonymous_rejected_401(self):
         self.client.logout()

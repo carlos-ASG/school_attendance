@@ -39,6 +39,7 @@
 </div>
 
 <div class="flex items-center gap-2">
+    {% if session_is_editable %}
     {% if not edit_mode %}
         <c-button href="?edit=1" variant="ghost" size="icon" aria-label="Editar sesión"
                   class="border border-transparent bg-transparent focus:bg-muted active:bg-muted">
@@ -71,6 +72,31 @@
             </c-alert-dialog.footer>
         </c-alert-dialog.content>
     </c-alert-dialog>
+    {% else %}
+        <c-alert-dialog>
+            <c-alert-dialog.trigger>
+                <c-button variant="ghost" type="button" size="icon" aria-label="Editar sesión"
+                          class="border border-transparent bg-transparent focus:bg-muted active:bg-muted">
+                    <c-icon.square-pen />
+                </c-button>
+            </c-alert-dialog.trigger>
+
+            <c-alert-dialog.content>
+                <c-alert-dialog.header>
+                    <c-alert-dialog.title>Sesión de solo lectura</c-alert-dialog.title>
+                    <c-alert-dialog.description>
+                        Esta sesión pertenece al ciclo «{{ session.course.school_cycle }}»
+                        ({{ session.course.school_cycle.start_date }} al {{ session.course.school_cycle.end_date }}).
+                        No se puede editar ni eliminar.
+                    </c-alert-dialog.description>
+                </c-alert-dialog.header>
+
+                <c-alert-dialog.footer>
+                    <c-alert-dialog.cancel>Entendido</c-alert-dialog.cancel>
+                </c-alert-dialog.footer>
+            </c-alert-dialog.content>
+        </c-alert-dialog>
+    {% endif %}
 </div>
 {% endpartialdef session_header %}{% partialdef attendance_edit_form %}<form method="post"
       hx-post="{% url 'teacher_panel:session_detail' session.pk %}"

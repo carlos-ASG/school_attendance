@@ -10,6 +10,7 @@ from django.views import View
 from django.views.generic import ListView
 from django_htmx.http import retarget
 
+from school.calendar import SESSION_FROZEN_MESSAGE, session_is_frozen
 from school.models import AttendanceSession, Course, create_attendance_records
 
 from ..forms import SessionForm
@@ -80,11 +81,27 @@ class SessionDeleteView(TeacherRequiredMixin, View):
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         session = get_object_or_404(
-            AttendanceSession.objects.select_related('course'),
+            AttendanceSession.objects.select_related('course', 'course__school_cycle'),
             pk=kwargs['pk'],
             course__teacher=self.teacher,
         )
         course = session.course
+        if session_is_frozen(session):
+            messages.error(request, SESSION_FROZEN_MESSAGE)
+            if request.htmx:
+                return render(
+                    request,
+                    'teacher_panel/course_session_history.html#session_list',
+                    {
+                        'course': course,
+                        'sessions': course.sessions.exclude(
+                            date=timezone.now().date()
+                        ),
+                    },
+                )
+            return HttpResponseRedirect(
+                reverse('teacher_panel:course_session_history', args=[course.pk])
+            )
         is_today = session.date == timezone.now().date()
         session.delete()
         messages.success(request, 'Sesión eliminada.')

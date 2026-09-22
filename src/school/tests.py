@@ -21,6 +21,7 @@ from .admin import AttendanceRecordInline
 from .calendar import (
     get_active_cycle,
     get_non_school_day,
+    session_is_frozen,
     validate_session_date,
 )
 from .images import (
@@ -430,6 +431,50 @@ class CalendarHelperTests(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             validate_session_date(self.course, date)
         self.assertIn(str(self.course.school_cycle), str(ctx.exception.messages))
+
+
+class SessionFreezeTests(TestCase):
+    """Spec: attendance-tracking — attendance freeze by school cycle."""
+
+    def setUp(self) -> None:
+        today = timezone.now().date()
+        _, _, _, self.teacher, self.course = make_course_data('Grupo Freeze')
+        self.past_cycle = make_cycle(
+            'Ciclo pasado',
+            cycle_type=SchoolCycle.CycleType.QUATRIMESTRAL,
+            start=today - timedelta(days=200),
+            end=today - timedelta(days=110),
+        )
+        self.past_course = Course.objects.create(
+            school_cycle=self.past_cycle,
+            student_group=self.course.student_group,
+            teacher=self.teacher,
+            subject=self.course.subject,
+        )
+
+    def make_session(self, course: Course, days: int) -> AttendanceSession:
+        return AttendanceSession.objects.create(
+            course=course,
+            date=timezone.now().date() + timedelta(days=days),
+            created_by=self.teacher,
+        )
+
+    def test_session_in_active_cycle_is_not_frozen(self) -> None:
+        session = self.make_session(self.course, -1)
+        self.assertFalse(session_is_frozen(session))
+
+    def test_session_in_past_cycle_is_frozen(self) -> None:
+        session = self.make_session(self.past_course, -150)
+        self.assertTrue(session_is_frozen(session))
+
+    def test_gap_date_freezes_even_the_latest_cycle(self) -> None:
+        session = self.make_session(self.course, -1)
+        gap_date = self.past_cycle.end_date + timedelta(days=1)
+        self.assertTrue(session_is_frozen(session, gap_date))
+
+    def test_course_without_cycle_is_frozen(self) -> None:
+        session = AttendanceSession(course=Course(), date=timezone.now().date())
+        self.assertTrue(session_is_frozen(session))
 
 
 class SchoolCycleAdminTests(TestCase):
