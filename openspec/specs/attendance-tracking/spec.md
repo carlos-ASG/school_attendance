@@ -73,12 +73,35 @@ An Attendance Record SHALL have exactly one status from: PRESENT, ABSENT, LATE, 
 - **WHEN** a record is saved with a status outside PRESENT, ABSENT, LATE or EXCUSED
 - **THEN** the system rejects the invalid status
 
+### Requirement: Attendance freeze by school cycle
+The system SHALL treat an Attendance Session as frozen (read-only for Teachers) when the session's course's School Cycle does not contain today's date. A frozen session's records SHALL NOT be editable or deletable by Teachers through any teacher-facing surface (panel or API). Sessions whose course's cycle contains today's date SHALL remain editable. When today's date falls outside every cycle (a gap between cycles), all sessions SHALL be frozen.
+
+#### Scenario: Session inside the active cycle stays editable
+- **WHEN** a session's course's School Cycle contains today's date
+- **THEN** the session is not frozen and its records remain editable by the course's Teacher
+
+#### Scenario: Session from a past cycle is frozen
+- **WHEN** a session's course's School Cycle ended before today
+- **THEN** the session is frozen and its records cannot be edited or deleted by Teachers through the panel or the API
+
+#### Scenario: Today falls in a gap between cycles
+- **WHEN** no School Cycle contains today's date
+- **THEN** every session is frozen, including sessions of the most recently ended cycle
+
+#### Scenario: Course without a cycle is frozen
+- **WHEN** a session's course has no School Cycle assigned
+- **THEN** the session is frozen
+
 ### Requirement: Attendance editing
-The system SHALL allow the course's Teacher and Admin users to update the attendance statuses and optional notes of a session's records after the session is created. There SHALL be no closing or finalization state; records remain editable.
+The system SHALL allow the course's Teacher and Admin users to update the attendance statuses and optional notes of a session's records after the session is created, provided the session is not frozen (its course's School Cycle contains today's date). There SHALL be no closing or finalization state; records of non-frozen sessions remain editable. Admin users remain unrestricted.
 
 #### Scenario: Teacher corrects attendance later
-- **WHEN** the course's Teacher reopens a past session and changes a status or note
+- **WHEN** the course's Teacher reopens a past session whose course's cycle contains today's date and changes a status or note
 - **THEN** the updated status and note are saved
+
+#### Scenario: Teacher edit on a frozen session is rejected
+- **WHEN** the course's Teacher submits an attendance change for a session whose course's cycle does not contain today's date
+- **THEN** no status or note change is persisted and the Teacher receives an error message explaining the session is read-only
 
 ### Requirement: Attendance record notes
 An Attendance Record SHALL have an optional notes field. The notes field SHALL default to an empty string and SHALL NOT be NULL.
@@ -101,3 +124,49 @@ An Attendance Record SHALL only be saved for a Student who is a member of the At
 #### Scenario: Programmatic save with invalid student is rejected
 - **WHEN** code calls full_clean or save on an Attendance Record whose student is not in the Course's Student Group
 - **THEN** a ValidationError is raised
+
+### Requirement: Attendance session calendar validation
+The system SHALL reject the creation of an Attendance Session whose date falls outside its Course's School Cycle or on a Non-School Day of that cycle. The validation SHALL apply regardless of whether the session is created from the teacher panel, the Django admin, or the session-creation code paths, and SHALL produce user-readable Spanish error messages that name the offending cycle or non-school day. Validation SHALL apply only at creation time: sessions that already exist SHALL NOT be invalidated or blocked from editing when the calendar changes afterwards.
+
+#### Scenario: Date outside the course's cycle is rejected
+- **WHEN** a session creation is attempted with a date outside the Course's School Cycle range
+- **THEN** the system rejects it with a validation error naming the cycle and no session is created
+
+#### Scenario: Non-school day is rejected
+- **WHEN** a session creation is attempted with a date that is a Non-School Day of the Course's cycle
+- **THEN** the system rejects it with a validation error naming the non-school day and no session is created
+
+#### Scenario: In-cycle, non-holiday date is allowed
+- **WHEN** a session creation is attempted with a past date inside the Course's cycle that is not a Non-School Day
+- **THEN** the session is created
+
+#### Scenario: Admin creation is validated too
+- **WHEN** an Admin saves an AttendanceSession in the Django admin with a date that is a Non-School Day of the Course's cycle
+- **THEN** the save is rejected with a validation error
+
+#### Scenario: Existing sessions survive calendar changes
+- **WHEN** an Admin marks a date as a Non-School Day after a session on that date already exists
+- **THEN** the existing session and its records remain unchanged and editable
+
+### Requirement: Attendance session schedule validation
+The system SHALL reject the creation of an Attendance Session whose date falls on a weekday that does not match any of the Course's ClassSchedule slots. A Course with no schedule slots SHALL have no valid session dates. The validation SHALL apply regardless of whether the session is created from the teacher panel, the Django admin, or the session-creation code paths, and SHALL produce user-readable Spanish error messages naming the weekday or the missing schedule. Validation SHALL apply only at creation time: sessions that already exist SHALL NOT be invalidated or blocked from editing when the course's schedule changes afterwards. A slot's start and end times SHALL NOT affect validation; only the weekday is considered.
+
+#### Scenario: Scheduled weekday is allowed
+- **WHEN** a session creation is attempted for a date inside the Course's cycle, not a Non-School Day, whose weekday matches one of the Course's schedule slots
+- **THEN** the session is created
+
+#### Scenario: Non-scheduled weekday is rejected
+- **WHEN** a session creation is attempted for a date whose weekday matches none of the Course's schedule slots
+- **THEN** the system rejects it with a validation error naming the weekday and no session is created
+
+#### Scenario: Course without schedule is rejected
+- **WHEN** a session creation is attempted for a Course that has no schedule slots
+- **THEN** the system rejects it with a validation error explaining the course has no assigned schedule and no session is created
+
+#### Scenario: Admin creation is validated too
+- **WHEN** an Admin saves an AttendanceSession in the Django admin with a date on a weekday the Course does not meet
+- **THEN** the save is rejected with a validation error and no session is created
+
+#### Scenario: Existing sessions survive schedule changes
+- **WHEN** a schedule slot is removed from a Course after a session on that weekday already exists
+- **THEN** the existing session and its records remain valid and editable

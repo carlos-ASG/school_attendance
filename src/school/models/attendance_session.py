@@ -40,11 +40,13 @@ class AttendanceSession(UUIDv7Model):
            ``SessionForm``).
         2. Calendar validation (creation-time only, design D6): for a new
            session (``_state.adding`` is ``True``) the date must fall inside
-           the course's school cycle and must not be a non-school day.
+           the course's school cycle, must not be a non-school day, and must
+           fall on a weekday the course's ClassSchedule slots cover (a
+           course without slots can never host a session).
            Existing sessions are never invalidated or blocked from editing
-           when the calendar changes afterwards — sessions are historical
-           truth. Errors are attached to the ``date`` field and name the
-           offending cycle or non-school day in Spanish.
+           when the calendar or schedule changes afterwards — sessions are
+           historical truth. Errors are attached to the ``date`` field and
+           name the offending cycle, non-school day, or weekday in Spanish.
 
         Raises:
             ValidationError: with the errors keyed by field (``date``).

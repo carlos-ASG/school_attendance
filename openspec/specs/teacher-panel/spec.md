@@ -72,30 +72,34 @@ After login, the system SHALL route users by role: users who are staff SHALL be 
 - **THEN** they are redirected to the teacher panel dashboard
 
 ### Requirement: Teacher course list
-The panel dashboard SHALL list only the Courses of the logged-in Teacher, showing each Course's Subject, Student Group, student count, schedule slots, and physical classroom.
+The panel dashboard SHALL list only the Courses of the logged-in Teacher whose School Cycle contains the current date, showing each Course's Subject, Student Group, student count, schedule slots, and physical classroom. When the Teacher has Courses in cycles that do not contain the current date, the dashboard SHALL additionally list them in a separate "Otros ciclos" section showing each Course with its cycle name and linking to its course detail page, without a "Sesión de hoy" card. When no School Cycle contains the current date, the main list SHALL show no courses.
 
-#### Scenario: Teacher sees only own courses
-- **WHEN** a Teacher opens the dashboard
-- **THEN** only Courses where that Teacher is assigned are listed
+#### Scenario: Teacher sees only own current-cycle courses
+- **WHEN** a Teacher opens the dashboard on a date contained by one of their courses' cycles
+- **THEN** only that teacher's Courses whose cycle contains the current date are listed in the main list
 
 #### Scenario: Teacher opens a course they do not teach
 - **WHEN** a Teacher requests the panel page of another teacher's Course
 - **THEN** the system denies access
 
-### Requirement: Dashboard session quick-access cards
-The dashboard SHALL render, under each course card, a row of two compact cards: "Sesión de hoy" and "Historial de sesiones". The "Sesión de hoy" card SHALL have no body content and a single footer button that get-or-creates today's session for that course and navigates the Teacher to the today session page. The "Historial de sesiones" card SHALL navigate to that course's session history page.
+#### Scenario: Other-cycle courses are listed separately
+- **WHEN** a Teacher opens the dashboard and has Courses in cycles that do not contain the current date
+- **THEN** those Courses appear in the "Otros ciclos" section with their cycle name, linking to their course detail pages
 
-#### Scenario: Teacher starts today's session from the dashboard
-- **WHEN** the Teacher clicks the "Sesión de hoy" card button for a course with no session today
-- **THEN** a session for today is created with attendance records for the group and the Teacher is taken to the today session page
+#### Scenario: No active cycle shows an empty main list
+- **WHEN** a Teacher opens the dashboard on a date not contained by any School Cycle
+- **THEN** the main course list is empty and the dashboard shows the no-cycle notice banner
 
-#### Scenario: Today's session already exists when using the dashboard card
-- **WHEN** the Teacher clicks the "Sesión de hoy" card button and a session for today already exists
-- **THEN** no duplicate session is created and the Teacher is taken to the existing session's today page
+### Requirement: Dashboard course card actions
+The dashboard SHALL render, under each course card, a single "Ver curso" button that navigates the Teacher to that course's detail page. The dashboard SHALL NOT provide a "Sesión de hoy" quick-access control or a "Historial de sesiones" control; today's session is created from the course detail page and sessions are listed from the course's session history page.
 
-#### Scenario: Teacher opens the history from the dashboard
-- **WHEN** the Teacher clicks the "Historial de sesiones" card for a course
-- **THEN** the Teacher is taken to that course's session history page
+#### Scenario: Teacher opens a course from the dashboard
+- **WHEN** the Teacher clicks the "Ver curso" button for a course
+- **THEN** the Teacher is taken to that course's detail page
+
+#### Scenario: Dashboard has no session quick-access
+- **WHEN** the Teacher opens the dashboard
+- **THEN** no course card offers a "Sesión de hoy" or "Historial de sesiones" control
 
 ### Requirement: Session detail pages split by date
 The panel SHALL provide two separate session detail pages: a today session page at `sessions/<pk>/today/`, reachable from the dashboard and course detail "Sesión de hoy" cards, and a previous session page at `sessions/<pk>/`, reachable from the history page's "Ver" action. Each page SHALL guard by date: requesting the today page for a session not dated today SHALL redirect to the previous session page, and requesting the previous page for a session dated today SHALL redirect to the today page. The session history list SHALL NOT include the course's session dated today.
@@ -128,14 +132,14 @@ The today session page SHALL render the attendance editing interface by default:
 - **THEN** the notes are stored and the attendance panel re-renders in place with a success confirmation
 
 ### Requirement: Past session review and correction
-The previous session page SHALL render the session's records read-only by default, listing every student with their current status and note. The page SHALL offer an "Editar" control that enables a batch edit form: one row per student with a status selector (combobox or select) offering the four statuses and a notes field. No change SHALL be persisted until the Teacher submits the form; submitting SHALL save all rows at once and return the page to the read-only view with a confirmation.
+The previous session page SHALL render the session's records read-only by default, listing every student with their current status and note. The page SHALL offer an "Editar" control that enables a batch edit form: one row per student with a status selector (combobox or select) offering the four statuses and a notes field. No change SHALL be persisted until the Teacher submits the form; submitting SHALL save all rows at once and return the page to the read-only view with a confirmation. For a frozen session (its course's School Cycle does not contain today's date), the "Editar" control SHALL NOT enable the batch edit form; it SHALL open an alert dialog explaining that the session belongs to a cycle that is no longer active and is read-only. A frozen session's edit form submission SHALL be rejected with an error message and the read-only view.
 
 #### Scenario: Past session opens read-only
 - **WHEN** the Teacher opens the previous session page of a session dated before today
 - **THEN** every student is listed with their current status and note shown read-only and no editing controls are rendered
 
 #### Scenario: Teacher enables editing on a past session
-- **WHEN** the Teacher clicks the "Editar" control on the previous session page
+- **WHEN** the Teacher clicks the "Editar" control on the previous session page of a session whose course's cycle contains today's date
 - **THEN** a batch edit form renders with one row per student, each with a status selector and a notes field
 
 #### Scenario: Status selector offers the four statuses in Spanish
@@ -143,18 +147,30 @@ The previous session page SHALL render the session's records read-only by defaul
 - **THEN** the options are exactly Presente, Ausente, Tarde, Justificado
 
 #### Scenario: Teacher submits the batch edit form
-- **WHEN** the Teacher changes one or more statuses or notes and submits the form
+- **WHEN** the Teacher changes one or more statuses or notes and submits the form of a session whose course's cycle contains today's date
 - **THEN** all changes are persisted together and the read-only view re-renders in place with a success confirmation
 
 #### Scenario: Teacher exits editing without submitting
 - **WHEN** the Teacher leaves edit mode without submitting the form
 - **THEN** no status or note changes are persisted
 
+#### Scenario: Frozen session stays read-only when edit mode is requested
+- **WHEN** the Teacher opens the previous session page of a frozen session with the edit flag (`?edit=1`)
+- **THEN** the page renders the read-only view and no edit form is rendered
+
+#### Scenario: Frozen session's edit button opens a read-only notice dialog
+- **WHEN** the Teacher clicks the "Editar" control on the previous session page of a frozen session
+- **THEN** an alert dialog opens explaining the session belongs to a cycle that is no longer active and cannot be edited, with a single acknowledgment control
+
+#### Scenario: Frozen session's edit form submission is rejected
+- **WHEN** the Teacher submits the batch edit form for a frozen session (e.g. a stale form posted directly)
+- **THEN** no changes are persisted, an error message explains the session is read-only, and the read-only view re-renders in place
+
 ### Requirement: Session deletion from the panel
-The panel SHALL allow the Teacher to delete an Attendance Session from the history page's "Acciones" column and from the today session page. Both delete controls SHALL require confirmation through an alert dialog before the deletion is submitted. Deleting a past session from the history page SHALL remove the session and its records and re-render the session list in place without a full page reload. Deleting a today session from the today session page SHALL remove the session and its records and redirect the Teacher to the course detail page.
+The panel SHALL allow the Teacher to delete an Attendance Session from the history page's "Acciones" column and from the today session page. Both delete controls SHALL require confirmation through an alert dialog before the deletion is submitted. Deleting a past session from the history page SHALL remove the session and its records and re-render the session list in place without a full page reload. Deleting a today session from the today session page SHALL remove the session and its records and redirect the Teacher to the course detail page. A frozen session (its course's School Cycle does not contain today's date) SHALL NOT be deletable: the delete control SHALL NOT be rendered on its session page, and a delete request submitted directly SHALL be rejected with an error message.
 
 #### Scenario: Teacher deletes a past session from the history
-- **WHEN** the Teacher confirms the deletion of a past session from the history page's "Acciones" column
+- **WHEN** the Teacher confirms the deletion of a past session of a non-frozen course from the history page's "Acciones" column
 - **THEN** the session and its records are removed and the session list re-renders in place without the deleted session
 
 #### Scenario: Teacher deletes the last session of a course from the history
@@ -168,6 +184,14 @@ The panel SHALL allow the Teacher to delete an Attendance Session from the histo
 #### Scenario: Deletion is cancelled
 - **WHEN** the Teacher dismisses the delete confirmation dialog without confirming
 - **THEN** no session is removed
+
+#### Scenario: Frozen session hides the delete control
+- **WHEN** the Teacher opens the previous session page of a frozen session
+- **THEN** no delete control is rendered for that session
+
+#### Scenario: Frozen session deletion is rejected
+- **WHEN** the Teacher submits a delete request for a frozen session directly
+- **THEN** the session and its records are not removed and an error message explains the session is read-only
 
 ### Requirement: Course sessions page
 The panel SHALL provide a dedicated page per Course, reachable from the course detail page and the dashboard's "Historial de sesiones" card, that lists the Course's Attendance Sessions most recent first, excluding the session dated today. The page SHALL host a "Crear sesión en otra fecha" form at the top, and the session list SHALL show each session's date, creation timestamp, and an "Acciones" column with a "Ver" control linking to the previous session page and an "Eliminar" control behind a confirmation dialog. The page SHALL be restricted to the Course's Teacher and SHALL provide a way to return to the course detail page.
@@ -215,21 +239,37 @@ The system SHALL compute each student's attendance percentage as the number of t
 - **THEN** every student in the group appears in the table, even if they have no attendance records
 
 ### Requirement: Create today session shortcut
-The "Sesión de hoy" cards on the dashboard and the course detail page SHALL provide a one-click control that get-or-creates the attendance session for the current date for that Course. When a session for the current date already exists, the control SHALL navigate to that session's today session page instead of creating a duplicate.
+The course detail page SHALL provide a "Sesión de hoy" one-click control that get-or-creates the attendance session for the current date for that Course. When a session for the current date already exists, the control SHALL navigate to that session's today session page instead of creating a duplicate. When the current date cannot host a session — a Non-School Day of the Course's cycle, a date outside the Course's cycle, a weekday that matches no schedule slot of the Course, or a Course with no schedule slots at all — the control SHALL NOT create a session and SHALL be rendered disabled with an informative Spanish message explaining why.
 
 #### Scenario: Teacher starts today's session
-- **WHEN** the Teacher clicks the "Sesión de hoy" control and no session exists for today
+- **WHEN** the Teacher clicks the "Sesión de hoy" control on a weekday the Course meets, with a date inside the cycle and not a Non-School Day, and no session exists for today
 - **THEN** a session for today is created with attendance records for the group and the Teacher is taken to its today session page
 
 #### Scenario: Today's session already exists
 - **WHEN** the Teacher clicks the "Sesión de hoy" control and a session for today already exists
 - **THEN** no duplicate session is created and the Teacher is taken to the existing session's today session page
 
+#### Scenario: Today control rejected on a non-school day
+- **WHEN** the Teacher opens the course detail page on a date that is a Non-School Day of the Course's cycle
+- **THEN** the "Sesión de hoy" control is disabled and a message explains why
+
+#### Scenario: Today control rejected outside the cycle
+- **WHEN** the Teacher opens the course detail page on a date outside the Course's cycle range
+- **THEN** the "Sesión de hoy" control is disabled and a message explains why
+
+#### Scenario: Today control rejected on a non-scheduled weekday
+- **WHEN** the Teacher opens the course detail page on a weekday that matches none of the Course's schedule slots
+- **THEN** the "Sesión de hoy" control is disabled and a message names the weekday the course does not meet
+
+#### Scenario: Today control rejected for a course without schedule
+- **WHEN** the Teacher opens the course detail page of a Course that has no schedule slots
+- **THEN** the "Sesión de hoy" control is disabled and a message explains the course has no assigned schedule
+
 ### Requirement: Session creation from the panel
-The panel SHALL allow the Teacher to create an attendance session for one of their Courses by choosing a date on the session history page's "Crear sesión en otra fecha" form. The chosen date SHALL be before today: dates in the future SHALL be rejected with a validation error, and today's date SHALL be rejected with a message directing the Teacher to the "Sesión de hoy" card. A date that already has a session for the Course SHALL be rejected. On success the session SHALL be created with per-student records and the Teacher SHALL be taken to the new session's page. On validation errors the form SHALL re-render in place with the errors, without a full page reload.
+The panel SHALL allow the Teacher to create an attendance session for one of their Courses by choosing a date on the session history page's "Crear sesión en otra fecha" form. The chosen date SHALL be before today: dates in the future SHALL be rejected with a validation error, and today's date SHALL be rejected with a message directing the Teacher to the "Sesión de hoy" card. A date that already has a session for the Course SHALL be rejected. A date outside the Course's School Cycle SHALL be rejected with a validation error naming the cycle, a date that is a Non-School Day of the Course's cycle SHALL be rejected with a validation error naming the non-school day, and a date on a weekday that matches no schedule slot of the Course SHALL be rejected with a validation error naming the weekday. On success the session SHALL be created with per-student records and the Teacher SHALL be taken to the new session's page. On validation errors the form SHALL re-render in place with the errors, without a full page reload.
 
 #### Scenario: Teacher creates a past session
-- **WHEN** the Teacher picks a past date and submits the create-session form on the history page
+- **WHEN** the Teacher picks a past date inside the course's cycle that is not a non-school day and falls on a weekday the course meets, and submits the create-session form on the history page
 - **THEN** a session is created for that date, per-student records are generated, and the Teacher is taken to the new session's page
 
 #### Scenario: Future date rejected
@@ -243,6 +283,22 @@ The panel SHALL allow the Teacher to create an attendance session for one of the
 #### Scenario: Duplicate session date handled
 - **WHEN** the Teacher submits the create-session form for a date that already has a session for that Course
 - **THEN** the form shows a validation error and no duplicate session is created
+
+#### Scenario: Out-of-cycle date rejected
+- **WHEN** the Teacher submits the create-session form with a date outside the Course's School Cycle range
+- **THEN** the form shows a validation error naming the cycle and no session is created
+
+#### Scenario: Non-school day date rejected
+- **WHEN** the Teacher submits the create-session form with a date that is a Non-School Day of the Course's cycle
+- **THEN** the form shows a validation error naming the non-school day and no session is created
+
+#### Scenario: Non-scheduled weekday rejected
+- **WHEN** the Teacher submits the create-session form with a past, in-cycle date on a weekday that matches none of the Course's schedule slots
+- **THEN** the form shows a validation error naming the weekday and no session is created
+
+#### Scenario: Course without schedule rejected
+- **WHEN** the Teacher submits the create-session form for a Course that has no schedule slots
+- **THEN** the form shows a validation error explaining the course has no assigned schedule and no session is created
 
 ### Requirement: Attendance recording on the today session page
 The today session page SHALL render the attendance editing interface by default: one row per student with a cyclic status button and a notes field. The rows SHALL be rendered client-side by Alpine.js from the session's records serialized into the page as JSON, and every student of the course's group SHALL be listed. Status changes and note edits SHALL be applied to a client-side pending state without any network request. A single save control SHALL submit all pending records to the attendance JSON API in one request; on success the pending state SHALL clear and a success toast SHALL be shown; on failure the pending state SHALL be preserved and an error toast SHALL be shown. Saving SHALL NOT re-render any server-rendered fragment.
@@ -333,3 +389,18 @@ Admin users SHALL manage all entities (Students, Teachers, Subjects, Student Gro
 #### Scenario: Admin manages everything from admin site
 - **WHEN** an Admin uses the Django admin site
 - **THEN** all domain entities are available for management with useful listings and filters
+
+### Requirement: Non-school day and cycle status banner
+The dashboard SHALL show a banner when the current date is not a class day: when the current date is a Non-School Day of the cycle containing it, the banner SHALL show "Hoy no hay clases — {nombre del día inhábil}"; when no School Cycle contains the current date, the banner SHALL show a notice that there is no cycle in progress. The banner text SHALL be in Spanish.
+
+#### Scenario: Banner on a non-school day
+- **WHEN** a Teacher opens the dashboard on a date that is a Non-School Day of the cycle containing that date
+- **THEN** the dashboard shows a banner reading "Hoy no hay clases —" followed by the non-school day's name
+
+#### Scenario: Banner when no cycle is in progress
+- **WHEN** a Teacher opens the dashboard on a date not contained by any School Cycle
+- **THEN** the dashboard shows a notice that there is no cycle in progress
+
+#### Scenario: No banner on a normal class day
+- **WHEN** a Teacher opens the dashboard on a date contained by a cycle and not marked as a non-school day
+- **THEN** no banner is shown

@@ -26,13 +26,13 @@
 
         <c-card>
             <c-card.header>
-                <c-card.title>Sesioses</c-card.title>
+                <c-card.title>Sesiones</c-card.title>
             </c-card.header>
             <c-card.content>
                 <div class="flex flex-row items-center gap-3">
                     <form method="post" action="{% url 'teacher_panel:today_session_create' course.pk %}">
                         {% csrf_token %}
-                        <c-button type="submit" {% if today_reason %}disabled{% endif %}>
+                        <c-button type="submit" disabled="{% if today_reason %}true{% endif %}">
                             <c-icon.users />
                             Tomar asistencia
                         </c-button>
@@ -57,7 +57,7 @@
                     {% for schedule_slot in course.schedule_slots.all %}
                         <c-detail_list.item label="{{ schedule_slot.get_weekday_display }}">{{ schedule_slot.start_time }}–{{ schedule_slot.end_time }}</c-detail_list.item>
                     {% empty %}
-                        <c-detail_list.item>Sin horario asignar.</c-detail_list.item>
+                        <c-detail_list.item>Sin horario asignado.</c-detail_list.item>
                     {% endfor %}
                 </c-detail_list>
             </c-card.content>

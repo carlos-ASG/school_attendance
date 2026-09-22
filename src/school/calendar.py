@@ -2,7 +2,10 @@
 
 Pure functions that act as the single source of truth for session-date
 validation and its Spanish error messages. Every session-creation entry
-point (model clean, panel form, today flow, admin) calls these.
+point (model clean, panel form, today flow, admin) calls these. A session
+date is valid only when it falls inside the course's cycle, is not a
+non-school day, and falls on a weekday the course's ClassSchedule slots
+cover (a course without slots has no valid session dates).
 """
 from datetime import date
 
@@ -10,7 +13,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import NonSchoolDay, SchoolCycle
+from .models import ClassSchedule, NonSchoolDay, SchoolCycle
 
 SESSION_FROZEN_MESSAGE = (
     'Esta sesión pertenece a un ciclo anterior y es de solo lectura.'
@@ -61,9 +64,18 @@ def validate_session_date(
 ) -> None:
     """Raise ValidationError when `value` cannot host a session of `course`.
 
-    The date must fall inside the course's cycle and must not be a
-    non-school day of that cycle. `non_school_day` may be pre-computed by the
-    caller (e.g. cached in the dashboard view) to avoid a repeated query.
+    Three rules apply, in order:
+
+    1. The date must fall inside the course's cycle.
+    2. The date must not be a non-school day of that cycle.
+    3. The course must have ClassSchedule slots and one of them must match
+       the date's weekday. Slot start/end times are ignored: only the
+       weekday matters. A course without slots can never host a session.
+
+    `non_school_day` may be pre-computed by the caller (e.g. cached in the
+    dashboard view) to avoid a repeated query. The schedule check uses the
+    course's related manager, which reuses the prefetch cache when the
+    caller prefetched ``schedule_slots``.
     """
     cycle = course.school_cycle
     if cycle is None:
@@ -78,6 +90,12 @@ def validate_session_date(
     if non_school_day is not None:
         formatted = value.strftime('%d/%m/%Y')
         raise ValidationError(f'El {formatted} es inhábil: {non_school_day.name}.')
+    scheduled_weekdays = {slot.weekday for slot in course.schedule_slots.all()}
+    if not scheduled_weekdays:
+        raise ValidationError('El curso no tiene horario asignado.')
+    if value.weekday() not in scheduled_weekdays:
+        weekday = ClassSchedule.Weekday(value.weekday()).label.lower()
+        raise ValidationError(f'El curso no tiene clase los días {weekday}.')
 
 
 def today_session_block_reason(

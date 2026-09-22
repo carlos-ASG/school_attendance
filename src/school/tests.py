@@ -2,7 +2,7 @@ import io
 import shutil
 import tempfile
 import uuid
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from typing import Any
 
 import pillow_heif
@@ -33,6 +33,7 @@ from .images import (
 from .models import (
     AttendanceRecord,
     AttendanceSession,
+    ClassSchedule,
     Course,
     NonSchoolDay,
     SchoolCycle,
@@ -60,6 +61,24 @@ def make_cycle(
     )
 
 
+def add_full_week_schedule(course: Course) -> list[ClassSchedule]:
+    """Create one ClassSchedule slot per weekday (07:00–08:00) for `course`.
+
+    Makes every weekday valid for session creation so tests never depend on
+    which weekday the suite runs. For schedule-specific tests, create a
+    targeted single-weekday schedule instead.
+    """
+    return [
+        ClassSchedule.objects.create(
+            course=course,
+            weekday=weekday,
+            start_time=time(7, 0),
+            end_time=time(8, 0),
+        )
+        for weekday in ClassSchedule.Weekday.values
+    ]
+
+
 def make_course_data(
     group_name: str,
 ) -> tuple[StudentGroup, Student, Student, Teacher, Course]:
@@ -76,6 +95,7 @@ def make_course_data(
     course = Course.objects.create(
         student_group=group, teacher=teacher, subject=subject, school_cycle=make_cycle()
     )
+    add_full_week_schedule(course)
     return group, insider, outsider, teacher, course
 
 
@@ -173,6 +193,42 @@ class AttendanceSessionCleanTests(TestCase):
             day_type=NonSchoolDay.DayType.ASUETO,
             start_date=session.date,
         )
+        session.full_clean()  # editing an existing session stays allowed
+        session.save()
+        self.assertTrue(AttendanceSession.objects.filter(pk=session.pk).exists())
+
+    def test_non_scheduled_weekday_rejected(self) -> None:
+        date = timezone.now().date() - timedelta(days=1)
+        self.course.schedule_slots.filter(weekday=date.weekday()).delete()
+        session = AttendanceSession(
+            course=self.course, date=date, created_by=self.teacher
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            session.full_clean()
+        self.assertIn('no tiene clase', str(ctx.exception.messages))
+        self.assertFalse(
+            AttendanceSession.objects.filter(course=self.course, date=date).exists()
+        )
+
+    def test_course_without_schedule_rejected(self) -> None:
+        self.course.schedule_slots.all().delete()
+        session = AttendanceSession(
+            course=self.course,
+            date=timezone.now().date() - timedelta(days=1),
+            created_by=self.teacher,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            session.full_clean()
+        self.assertIn('no tiene horario asignado', str(ctx.exception.messages))
+
+    def test_existing_session_survives_later_schedule_change(self) -> None:
+        date = timezone.now().date() - timedelta(days=2)
+        session = AttendanceSession(
+            course=self.course, date=date, created_by=self.teacher
+        )
+        session.full_clean()
+        session.save()
+        self.course.schedule_slots.filter(weekday=date.weekday()).delete()
         session.full_clean()  # editing an existing session stays allowed
         session.save()
         self.assertTrue(AttendanceSession.objects.filter(pk=session.pk).exists())
@@ -431,6 +487,22 @@ class CalendarHelperTests(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             validate_session_date(self.course, date)
         self.assertIn(str(self.course.school_cycle), str(ctx.exception.messages))
+
+    def test_validate_session_date_rejects_non_scheduled_weekday(self) -> None:
+        date = timezone.now().date() - timedelta(days=1)
+        self.course.schedule_slots.filter(weekday=date.weekday()).delete()
+        with self.assertRaises(ValidationError) as ctx:
+            validate_session_date(self.course, date)
+        message = ' '.join(ctx.exception.messages)
+        self.assertIn('no tiene clase los días', message)
+        self.assertIn(ClassSchedule.Weekday(date.weekday()).label.lower(), message)
+
+    def test_validate_session_date_rejects_course_without_schedule(self) -> None:
+        self.course.schedule_slots.all().delete()
+        date = timezone.now().date() - timedelta(days=1)
+        with self.assertRaises(ValidationError) as ctx:
+            validate_session_date(self.course, date)
+        self.assertIn('no tiene horario asignado', str(ctx.exception.messages))
 
 
 class SessionFreezeTests(TestCase):

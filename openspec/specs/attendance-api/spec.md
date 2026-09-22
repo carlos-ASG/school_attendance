@@ -73,9 +73,13 @@ When the same record id appears multiple times in one payload, the last entry fo
 - **WHEN** the payload contains two entries for the same record id with different statuses
 - **THEN** the record is updated with the status of the last entry
 
-### Requirement: Any owned session is editable regardless of date
-The bulk record update endpoint SHALL accept updates for any Attendance Session owned by the requesting Teacher, whether dated today or in the past.
+### Requirement: Session updates restricted to the active cycle
+The bulk record update endpoint SHALL reject updates for a frozen session — an Attendance Session whose course's School Cycle does not contain today's date — with a 422 response and an error message explaining the session is read-only. Sessions owned by the requesting Teacher whose course's cycle contains today's date (including sessions dated before today) SHALL remain updatable.
 
-#### Scenario: Past session updated through the API
-- **WHEN** the Teacher sends an update payload for a session dated before today that they own
+#### Scenario: Frozen session update is rejected
+- **WHEN** the Teacher sends an update payload for a session they own whose course's cycle does not contain today's date
+- **THEN** the endpoint responds 422 with an error message explaining the session is read-only and no records are changed
+
+#### Scenario: Past session inside the active cycle is updated
+- **WHEN** the Teacher sends an update payload for a session dated before today whose course's cycle contains today's date
 - **THEN** the records are updated and the response contains the saved records

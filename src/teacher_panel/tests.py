@@ -5,7 +5,6 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from school.tests import make_cycle
 from school.models import (
     AttendanceRecord,
     AttendanceSession,
@@ -18,6 +17,7 @@ from school.models import (
     Teacher,
     create_attendance_records,
 )
+from school.tests import add_full_week_schedule, make_cycle
 
 
 def days_from_today(days: int) -> str:
@@ -49,6 +49,7 @@ class TodaySessionCreateViewTests(TestCase):
             school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
+        add_full_week_schedule(cls.course)
 
     def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
@@ -138,6 +139,29 @@ class TodaySessionCreateViewTests(TestCase):
         )
         self.assertContains(response, 'fuera del ciclo')
 
+    def test_today_non_scheduled_weekday_rejected(self) -> None:
+        today_weekday = timezone.now().date().weekday()
+        self.course.schedule_slots.filter(weekday=today_weekday).delete()
+        url = reverse('teacher_panel:today_session_create', args=[self.course.pk])
+        response = self.client.post(url, follow=True)
+        self.assertFalse(
+            AttendanceSession.objects.filter(
+                course=self.course, date=days_from_today(0)
+            ).exists()
+        )
+        self.assertContains(response, 'no tiene clase')
+
+    def test_today_course_without_schedule_rejected(self) -> None:
+        self.course.schedule_slots.all().delete()
+        url = reverse('teacher_panel:today_session_create', args=[self.course.pk])
+        response = self.client.post(url, follow=True)
+        self.assertFalse(
+            AttendanceSession.objects.filter(
+                course=self.course, date=days_from_today(0)
+            ).exists()
+        )
+        self.assertContains(response, 'no tiene horario asignado')
+
 
 class SessionUrlGuardTests(TestCase):
     @classmethod
@@ -218,6 +242,7 @@ class CourseSessionHistoryViewTests(TestCase):
             school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
+        add_full_week_schedule(cls.course)
 
     def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
@@ -335,6 +360,29 @@ class CourseSessionHistoryViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'no puede ser posterior')
+        self.assertIn('HX-Retarget', response.headers)
+        self.assertEqual(response.headers['HX-Retarget'], '#session-form')
+
+    def test_create_non_scheduled_weekday_rejected(self) -> None:
+        date = timezone.now().date() - timedelta(days=2)
+        self.course.schedule_slots.filter(weekday=date.weekday()).delete()
+        url = reverse('teacher_panel:course_session_history', args=[self.course.pk])
+        response = self.client.post(url, {'date': date.isoformat()})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            AttendanceSession.objects.filter(course=self.course, date=date).exists()
+        )
+        self.assertContains(response, 'no tiene clase')
+
+    def test_create_non_scheduled_weekday_htmx_returns_form_fragment(self) -> None:
+        date = timezone.now().date() - timedelta(days=2)
+        self.course.schedule_slots.filter(weekday=date.weekday()).delete()
+        url = reverse('teacher_panel:course_session_history', args=[self.course.pk])
+        response = self.client.post(
+            url, {'date': date.isoformat()}, HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'no tiene clase')
         self.assertIn('HX-Retarget', response.headers)
         self.assertEqual(response.headers['HX-Retarget'], '#session-form')
 
@@ -738,6 +786,7 @@ class CourseDetailViewTests(TestCase):
             school_cycle=cls.cycle,
             student_group=cls.group, teacher=cls.teacher, subject=cls.subject
         )
+        add_full_week_schedule(cls.course)
 
     def setUp(self) -> None:
         self.client.force_login(self.teacher_user)
@@ -776,6 +825,13 @@ class CourseDetailViewTests(TestCase):
         )
         self.assertNotContains(response, 'Crear sesión en otra fecha')
 
+    def assert_today_card_disabled(self, response) -> None:
+        self.assertRegex(
+            response.content.decode(),
+            r'(?s)<form method="post" action="[^"]*/sessions/today/">'
+            r'.*?<button disabled\b[^>]*type="submit"',
+        )
+
     def test_today_card_disabled_on_non_school_day(self) -> None:
         NonSchoolDay.objects.create(
             cycle=self.cycle,
@@ -786,8 +842,25 @@ class CourseDetailViewTests(TestCase):
         url = reverse('teacher_panel:course_detail', args=[self.course.pk])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'disabled')
+        self.assert_today_card_disabled(response)
         self.assertContains(response, 'Asueto detalle')
+
+    def test_today_card_disabled_on_non_scheduled_weekday(self) -> None:
+        today_weekday = timezone.now().date().weekday()
+        self.course.schedule_slots.filter(weekday=today_weekday).delete()
+        url = reverse('teacher_panel:course_detail', args=[self.course.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assert_today_card_disabled(response)
+        self.assertContains(response, 'no tiene clase')
+
+    def test_today_card_disabled_without_schedule(self) -> None:
+        self.course.schedule_slots.all().delete()
+        url = reverse('teacher_panel:course_detail', args=[self.course.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assert_today_card_disabled(response)
+        self.assertContains(response, 'no tiene horario asignado')
 
     def test_history_link_works_for_other_cycle_course(self) -> None:
         past_cycle = make_cycle(
