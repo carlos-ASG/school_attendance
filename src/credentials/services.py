@@ -1,17 +1,25 @@
 from datetime import datetime
 from uuid import UUID
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from ninja.errors import HttpError
 
-from school.models import Student
+from school.selectors import get_student
 
 from .models import Credential, StudentCredential
 
 
-def apply_issued_event(
+class StudentNotFound(ValidationError):
+    """El evento issued referencia un estudiante inexistente."""
+
+
+class CredentialNotFound(ValidationError):
+    """El evento referencia una credencial inexistente."""
+
+
+def credential_issue(
     *, student_id: UUID, credential: dict[str, object]
 ) -> None:
     """Upsert de la credencial y vínculo con el estudiante, en una transacción.
@@ -22,10 +30,9 @@ def apply_issued_event(
     """
     now = timezone.now()
     with transaction.atomic():
-        try:
-            student = Student.objects.get(pk=student_id)
-        except Student.DoesNotExist:
-            raise HttpError(422, 'Estudiante no encontrado.') from None
+        student = get_student(student_id=student_id)
+        if student is None:
+            raise StudentNotFound('Estudiante no encontrado.')
         credential_row, _ = Credential.objects.update_or_create(
             id=credential['id'],
             defaults={
@@ -50,13 +57,15 @@ def apply_issued_event(
             )
 
 
-def apply_revoked_event(*, credential_id: UUID, revoked_at: datetime) -> None:
+def credential_revoke(*, credential_id: UUID, revoked_at: datetime) -> None:
     now = timezone.now()
     with transaction.atomic():
         try:
-            credential = Credential.objects.select_for_update().get(pk=credential_id)
+            credential = Credential.objects.select_for_update().get(
+                pk=credential_id
+            )
         except Credential.DoesNotExist:
-            raise HttpError(404, 'Credencial no encontrada.') from None
+            raise CredentialNotFound('Credencial no encontrada.') from None
         credential.revoked_at = revoked_at
         credential.synced_at = now
         credential.save(update_fields=['revoked_at', 'synced_at'])
@@ -65,7 +74,7 @@ def apply_revoked_event(*, credential_id: UUID, revoked_at: datetime) -> None:
         ).update(unlinked_at=now)
 
 
-def apply_validity_extended_event(
+def credential_extend_validity(
     *,
     credential_id: UUID,
     expiration_date: datetime,
@@ -74,9 +83,11 @@ def apply_validity_extended_event(
     now = timezone.now()
     with transaction.atomic():
         try:
-            credential = Credential.objects.select_for_update().get(pk=credential_id)
+            credential = Credential.objects.select_for_update().get(
+                pk=credential_id
+            )
         except Credential.DoesNotExist:
-            raise HttpError(404, 'Credencial no encontrada.') from None
+            raise CredentialNotFound('Credencial no encontrada.') from None
         credential.expiration_date = expiration_date
         credential.max_expiration_date = max_expiration_date
         credential.synced_at = now

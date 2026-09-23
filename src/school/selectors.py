@@ -5,10 +5,11 @@ entities (SchoolCycle, NonSchoolDay) that session-date validation and the
 teacher panel depend on. They never mutate data.
 """
 from datetime import date
+from uuid import UUID
 
 from django.db.models import Q
 
-from .models import NonSchoolDay, SchoolCycle
+from .models import NonSchoolDay, SchoolCycle, Student
 
 
 def get_active_cycle(*, value: date) -> SchoolCycle | None:
@@ -18,6 +19,11 @@ def get_active_cycle(*, value: date) -> SchoolCycle | None:
         .order_by('pk')
         .first()
     )
+
+
+def get_student(*, student_id: UUID) -> Student | None:
+    """Return the Student with pk=student_id, or None."""
+    return Student.objects.filter(pk=student_id).first()
 
 
 def get_non_school_day(

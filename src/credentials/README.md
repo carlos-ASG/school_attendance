@@ -2,7 +2,7 @@
 
 Dominio core de gestión de credenciales. No sabe nada de Nierika ni de
 ningún otro emisor: un emisor futuro escribiría en este mismo dominio
-(vía `events.py` o su propio sync) sin tocar código de integración.
+(vía `services.py` o su propio sync) sin tocar código de integración.
 
 ## Modelos
 
@@ -16,14 +16,17 @@ ningún otro emisor: un emisor futuro escribiría en este mismo dominio
   (`unlinked_at IS NULL`) por estudiante; una credencial pertenece a un solo
   estudiante.
 
-## Aplicación de eventos (`events.py`)
+## Aplicación de eventos (`services.py`)
 
 Lógica transaccional de mutación del espejo, consumida por el endpoint push
-`POST /api/desktop/credential-events` (router en la app `api`):
+`POST /api/desktop/credential-events` (router en la app `api`). Los errores
+de dominio (`StudentNotFound`, `CredentialNotFound`) son traducidos por el
+endpoint a 422/404:
 
-- `apply_issued_event` — upsert de `Credential` + vínculo con el estudiante
-  (cierra la relación activa previa; idempotente ante reenvío; 422 si el
-  estudiante no existe).
-- `apply_revoked_event` — fija `revoked_at` y cierra la relación activa
-  (404 si la credencial no existe).
-- `apply_validity_extended_event` — actualiza vigencias (404 si no existe).
+- `credential_issue` — upsert de `Credential` + vínculo con el estudiante
+  (cierra la relación activa previa; idempotente ante reenvío;
+  `StudentNotFound` si el estudiante no existe).
+- `credential_revoke` — fija `revoked_at` y cierra la relación activa
+  (`CredentialNotFound` si no existe).
+- `credential_extend_validity` — actualiza vigencias (`CredentialNotFound`
+  si no existe).

@@ -66,5 +66,5 @@ Endpoints de escritorio (django-ninja, header `X-API-Key: dsk_...`):
 
 Las tres operaciones son vistas `async def` (beneficio de concurrencia bajo
 servidor ASGI como uvicorn/daphne; bajo `runserver`/WSGI funcionan igual).
-La lógica transaccional de eventos vive síncrona en `credentials/events.py`
+La lógica transaccional de eventos vive síncrona en `credentials/services.py`
 y se invoca vía `sync_to_async` (Django 6.1 no soporta atomic async).

@@ -5,11 +5,7 @@ from django.http import HttpRequest, HttpResponse
 from ninja import Router
 from ninja.errors import HttpError
 
-from credentials.events import (
-    apply_issued_event,
-    apply_revoked_event,
-    apply_validity_extended_event,
-)
+from credentials import services
 from school.models import Student
 
 from ..auth import DesktopApiKeyAuth
@@ -65,33 +61,38 @@ async def student_photo(request: HttpRequest, student_id: UUID) -> HttpResponse:
 async def credential_events(
     request: HttpRequest, payload: CredentialEventIn
 ) -> CredentialEventApplied:
-    if payload.operation == 'issued':
-        if payload.credential is None or payload.student_id is None:
-            raise HttpError(
-                422, 'El evento issued requiere credential y student_id.'
+    try:
+        if payload.operation == 'issued':
+            if payload.credential is None or payload.student_id is None:
+                raise HttpError(
+                    422, 'El evento issued requiere credential y student_id.'
+                )
+            await sync_to_async(services.credential_issue)(
+                student_id=payload.student_id,
+                credential=payload.credential.model_dump(),
             )
-        await sync_to_async(apply_issued_event)(
-            student_id=payload.student_id,
-            credential=payload.credential.model_dump(),
-        )
-    elif payload.operation == 'revoked':
-        if payload.credential_id is None or payload.revoked_at is None:
-            raise HttpError(
-                422, 'El evento revoked requiere credential_id y revoked_at.'
+        elif payload.operation == 'revoked':
+            if payload.credential_id is None or payload.revoked_at is None:
+                raise HttpError(
+                    422, 'El evento revoked requiere credential_id y revoked_at.'
+                )
+            await sync_to_async(services.credential_revoke)(
+                credential_id=payload.credential_id, revoked_at=payload.revoked_at
             )
-        await sync_to_async(apply_revoked_event)(
-            credential_id=payload.credential_id, revoked_at=payload.revoked_at
-        )
-    else:
-        if payload.credential_id is None or payload.expiration_date is None:
-            raise HttpError(
-                422,
-                'El evento validity_extended requiere credential_id,'
-                ' expiration_date y max_expiration_date.',
+        else:
+            if payload.credential_id is None or payload.expiration_date is None:
+                raise HttpError(
+                    422,
+                    'El evento validity_extended requiere credential_id,'
+                    ' expiration_date y max_expiration_date.',
+                )
+            await sync_to_async(services.credential_extend_validity)(
+                credential_id=payload.credential_id,
+                expiration_date=payload.expiration_date,
+                max_expiration_date=payload.max_expiration_date,
             )
-        await sync_to_async(apply_validity_extended_event)(
-            credential_id=payload.credential_id,
-            expiration_date=payload.expiration_date,
-            max_expiration_date=payload.max_expiration_date,
-        )
+    except services.StudentNotFound:
+        raise HttpError(422, 'Estudiante no encontrado.') from None
+    except services.CredentialNotFound:
+        raise HttpError(404, 'Credencial no encontrada.') from None
     return CredentialEventApplied(status='applied', operation=payload.operation)
