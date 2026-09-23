@@ -37,7 +37,8 @@ module-name = ["config", "accounts", "school", "teacher_panel", "core_ui", "api"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.test_settings"
 python_files = ["test_*.py", "tests.py"]
-testpaths = ["src"]
+testpaths = ["tests"]
+addopts = "--import-mode=importlib"
 
 [dependency-groups]
 dev = [
