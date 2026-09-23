@@ -3,7 +3,7 @@
 ## 1. App `integrations` y modelos
 
 - [x] 1.1 Crear `src/integrations/` (`apps.py`, `models/`, `migrations/`, `tests.py`) y registrarla en `INSTALLED_APPS` (settings) y en `module-name` de `pyproject.toml`.
-- [x] 1.2 Crear modelo `Credential` (PK `id` UUID sin default — proviene de Nierika; `serial_number` indexado; `issued_at`, `expiration_date`, `max_expiration_date`, `revoked_at` nullable, `scan_kind`, `synced_at`) con propiedad `status` derivada (precedencia `Revoked > Expired > Active` contra `timezone.now()`).
+- [x] 1.2 Crear modelo `Credential` (PK `id` UUID sin default — proviene de Nierika; `serial_number` indexado; `issued_at`, `expiration_date`, `max_expiration_date`, `revoked_at` nullable, `synced_at`) con propiedad `status` derivada (precedencia `Revoked > Expired > Active` contra `timezone.now()`).
 - [x] 1.3 Crear modelo `StudentCredential` (`student` FK → `school.Student`, `credential` FK → `integrations.Credential` con `unique=True`, `linked_at`, `unlinked_at` nullable) con constraint/garantía de máximo una relación activa (`unlinked_at IS NULL`) por estudiante.
 - [x] 1.4 Crear modelo `DesktopApiKey` (`name`, `prefix` indexado, `hash`, `created_at`, `revoked_at` nullable) + migración inicial de la app. **Given** las migraciones aplicadas, **When** se inspecciona el schema, **Then** existen las tres tablas con sus índices y constraints.
 - [x] 1.5 Agregar tests de modelo: estado derivado (revocada > expirada > activa), unicidad de credencial en la relación, constraint de una relación activa por estudiante.
@@ -16,7 +16,7 @@
 ## 3. Cliente de sincronización y management command
 
 - [x] 3.1 Crear `integrations/nierika.py`: cliente HTTP (stdlib `urllib`, sin dependencias nuevas) con `GET /api/integrations/me/credentials` paginado por cursor `(createdAt, Id)` + `limit` (default 500 configurable), header `X-API-Key`, timeout y manejo de 401/5xx con error que nunca loggee el valor de la key. Extraer a función pura el mapeo del JSON de página a dicts de campos del modelo.
-- [x] 3.2 Crear command `sync_nierika_credentials`: **Given** `NIERIKA_API_KEY` vacía, **When** corre el command, **Then** no hace peticiones HTTP y termina con código 0 y mensaje informativo. **Given** key configurada, **When** corre, **Then** itera todas las páginas y upserta por `id` fijando `synced_at`.
+- [x] 3.2 Crear command `sync_nierika_credentials`: **Given** `NIERIKA_API_KEY` vacía, **When** corre el command, **Then** no hace peticiones HTTP y termina con código 0 y mensaje informativo. **Given** key configurada, **When** corre, **Then** itera todas las páginas y upserta por `id` fijando `synced_at`; filas del catálogo sin `MaxExpirationDate` se saltan con warning (sin abortar, exit 0).
 - [x] 3.3 Tests del command con `responses`/mock de `urllib` (o inyección del cliente): paginación completa, upsert idempotente en re-ejecución, actualización de fila desactualizada, no-op sin key, fallo con key y servidor caído (exit no-cero, sin filtrar la key en el mensaje).
 
 ## 4. API keys del escritorio y management commands
@@ -35,7 +35,7 @@
 
 - [x] 6.1 Crear schemas ninja del evento discriminado (`operation` literal: `issued` | `revoked` | `validity_extended` + payload por operación + `occurred_at`) en `src/api/schemas.py` (o módulo propio) y handler `POST /credential-events` en el router de escritorio.
 - [x] 6.2 Implementar aplicación del evento `issued` en transacción: upsert de `Credential` por `id`; cierre de relación activa previa del estudiante; creación de `StudentCredential`; idempotencia ante reenvío (mismo resultado). 422 si `student_id` no existe.
-- [x] 6.3 Implementar `revoked` (fija `revoked_at`, cierra relación activa) y `validity_extended` (actualiza vigencias); 404 si la credencial no existe en el espejo; 422 si `operation` no es de las tres soportadas.
+- [x] 6.3 Implementar `revoked` (fija `revoked_at`, cierra relación activa) y `validity_extended` (actualiza `expiration_date` dentro del techo inmutable `max_expiration_date`); 404 si la credencial no existe en el espejo; 422 si `operation` no es de las tres soportadas o si la vigencia pretendida excede el techo (`ExpirationBeyondMax`, también en `issued`).
 - [x] 6.4 Tests end-to-end del endpoint: emisión crea credencial + relación; reemisión cierra la anterior; reenvío idempotente; revocación cierra relación; extended actualiza; 404 de evento huérfano; 422 de operation inválida y de estudiante inexistente.
 
 ## 7. Verificación final

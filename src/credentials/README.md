@@ -8,7 +8,7 @@ ningún otro emisor: un emisor futuro escribiría en este mismo dominio
 
 - `Credential` — espejo de hechos crudos (`id` UUID asignado por el emisor
   como PK, `serial_number`, fechas de emisión/vigencia, `revoked_at`,
-  `scan_kind`, `synced_at`). Sin datos personales del titular. El estado
+  `synced_at`). Sin datos personales del titular. El estado
   (`Active`/`Expired`/`Revoked`) es una propiedad derivada con precedencia
   `Revoked > Expired > Active` contra la hora UTC; no se persiste.
 - `StudentCredential` — vínculo estudiante↔credencial con historial
@@ -25,8 +25,11 @@ endpoint a 422/404:
 
 - `credential_issue` — upsert de `Credential` + vínculo con el estudiante
   (cierra la relación activa previa; idempotente ante reenvío;
-  `StudentNotFound` si el estudiante no existe).
+  `StudentNotFound` si el estudiante no existe; `MaxExpirationRequired` si
+  falta el techo `max_expiration_date`, obligatorio en el alta;
+  `ExpirationBeyondMax` si la vigencia excede su `max_expiration_date`).
 - `credential_revoke` — fija `revoked_at` y cierra la relación activa
   (`CredentialNotFound` si no existe).
-- `credential_extend_validity` — actualiza vigencias (`CredentialNotFound`
-  si no existe).
+- `credential_extend_validity` — actualiza `expiration_date` dentro del
+  techo `max_expiration_date` (inmutable tras el alta; `ExpirationBeyondMax`
+  si se excede) (`CredentialNotFound` si no existe).

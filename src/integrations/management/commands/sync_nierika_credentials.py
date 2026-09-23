@@ -29,8 +29,18 @@ class Command(BaseCommand):
         client = NierikaClient(base_url, api_key)
         synced_at = timezone.now()
         total = 0
+        skipped = 0
         try:
             for fields in client.iter_credentials():
+                if fields.get('max_expiration_date') is None:
+                    skipped += 1
+                    self.stderr.write(
+                        self.style.WARNING(
+                            'Skipping credential without max expiration'
+                            f' date: {fields.get("serial_number")}'
+                        )
+                    )
+                    continue
                 credential_id = fields.pop('id')
                 fields['synced_at'] = synced_at
                 Credential.objects.update_or_create(id=credential_id, defaults=fields)
@@ -40,3 +50,9 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f'Synced {total} credentials from Nierika.')
         )
+        if skipped:
+            self.stdout.write(
+                self.style.WARNING(
+                    f'Skipped {skipped} credentials without max expiration date.'
+                )
+            )

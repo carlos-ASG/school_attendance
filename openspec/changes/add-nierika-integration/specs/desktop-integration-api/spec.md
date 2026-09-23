@@ -25,7 +25,7 @@ El sistema SHALL exponer `GET /api/desktop/students/{id}/photo` autenticado por 
 - **THEN** la respuesta es 404
 
 ### Requirement: Notificación push de credencial emitida con relación estudiante
-El sistema SHALL exponer `POST /api/desktop/credential-events` que acepte eventos `{operation: "issued", occurred_at, credential: {id, serial_number, issued_at, expiration_date, max_expiration_date, scan_kind}, student_id}`. El evento SHALL aplicarse transaccionalmente: upsert de la credencial en el espejo y creación de la relación estudiante-credencial. El evento SHALL ser idempotente (reenvío del mismo evento no duplica ni altera el resultado final).
+El sistema SHALL exponer `POST /api/desktop/credential-events` que acepte eventos `{operation: "issued", occurred_at, credential: {id, serial_number, issued_at, expiration_date, max_expiration_date}, student_id}`. El evento SHALL aplicarse transaccionalmente: upsert de la credencial en el espejo y creación de la relación estudiante-credencial. El evento SHALL ser idempotente (reenvío del mismo evento no duplica ni altera el resultado final).
 
 #### Scenario: Emisión crea credencial y relación
 - **WHEN** llega un evento `issued` con una credencial nueva y un `student_id` válido
@@ -44,15 +44,27 @@ El sistema SHALL exponer `POST /api/desktop/credential-events` que acepte evento
 - **THEN** la respuesta es 422 con error de validación y no se persiste nada
 
 ### Requirement: Notificación push de revocación y extensión de vigencia
-El sistema SHALL aceptar en el mismo endpoint eventos `{operation: "revoked", occurred_at, credential_id, revoked_at}` que fijen `revoked_at` de la credencial y cierren su relación activa, y `{operation: "validity_extended", occurred_at, credential_id, expiration_date, max_expiration_date}` que actualicen las vigencias del espejo.
+El sistema SHALL aceptar en el mismo endpoint eventos `{operation: "revoked", occurred_at, credential_id, revoked_at}` que fijen `revoked_at` de la credencial y cierren su relación activa, y `{operation: "validity_extended", occurred_at, credential_id, expiration_date}` que actualicen `expiration_date` del espejo. `max_expiration_date` SHALL ser inmutable tras el alta y SHALL actuar como techo: tanto el `issued` como el `validity_extended` SHALL rechazarse con 422 cuando la vigencia pretendida exceda el techo (si existe).
 
 #### Scenario: Revocación actualiza espejo y cierra relación
 - **WHEN** llega un evento `revoked` para una credencial con relación activa
 - **THEN** la credencial refleja `revoked_at` y la relación queda cerrada
 
 #### Scenario: Extensión de vigencia actualiza el espejo
-- **WHEN** llega un evento `validity_extended` con nuevas fechas
-- **THEN** la credencial refleja las vigencias actualizadas
+- **WHEN** llega un evento `validity_extended` con una vigencia dentro del techo
+- **THEN** la credencial refleja la nueva `expiration_date` y conserva su `max_expiration_date` del alta
+
+#### Scenario: Extensión que excede el techo
+- **WHEN** llega un evento `validity_extended` cuya `expiration_date` excede el `max_expiration_date` almacenado
+- **THEN** la respuesta es 422 y la credencial queda sin cambios
+
+#### Scenario: Emisión con vigencia que excede el techo
+- **WHEN** llega un evento `issued` cuyo `expiration_date` excede su propio `max_expiration_date`
+- **THEN** la respuesta es 422 y no se persiste nada
+
+#### Scenario: Emisión sin techo
+- **WHEN** llega un evento `issued` cuyo `credential` no incluye `max_expiration_date`
+- **THEN** la respuesta es 422 y no se persiste nada
 
 #### Scenario: Evento sobre credencial desconocida
 - **WHEN** llega un evento `revoked` o `validity_extended` cuyo `credential_id` no existe en el espejo

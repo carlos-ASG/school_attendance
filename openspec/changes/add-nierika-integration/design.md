@@ -49,9 +49,11 @@ Alternativas descartadas: meter los modelos en `school` (mezclaría el dominio a
 
 ### D2. Espejo de credenciales: hechos crudos + estado derivado
 
-`Credential` persiste solo hechos: `id` (UUID de Nierika, PK, no generado), `serial_number`, `issued_at`, `expiration_date`, `max_expiration_date`, `revoked_at`, `scan_kind`, `synced_at`. El estado (`Active`/`Revoked`/`Expired`) es una **propiedad calculada** con precedencia `Revoked > Expired > Active` contra UTC — el mismo criterio de `DeriveStatus` en Nierika. No se persiste el estado: evita datos obsoletos (una credencial expira con el paso del tiempo aunque nadie la toque).
+`Credential` persiste solo hechos: `id` (UUID de Nierika, PK, no generado), `serial_number`, `issued_at`, `expiration_date`, `max_expiration_date`, `revoked_at`, `synced_at`. `ScanKind` es un dato del dominio de Nierika sin consumidor local, así que Django lo ignora al recibirlo. El estado (`Active`/`Revoked`/`Expired`) es una **propiedad calculada** con precedencia `Revoked > Expired > Active` contra UTC — el mismo criterio de `DeriveStatus` en Nierika. No se persiste el estado: evita datos obsoletos (una credencial expira con el paso del tiempo aunque nadie la toque).
 
 Upsert idempotente por `id` tanto en la descarga completa como en el evento `issued` (mismo criterio que el cliente Django previsto por el design de Nierika).
+
+`max_expiration_date` es el techo de vigencia fijado en el alta e inmutable después; `expiration_date` solo se extiende dentro de ese techo (validación en `issued` y en `validity_extended`). El techo es **obligatorio** desde el alta (`issued` sin `max_expiration_date` → 422; la columna es NOT NULL), y la reconciliación por descarga salta filas del catálogo sin `MaxExpirationDate` (warning + conteo, sin abortar el sync).
 
 ### D3. Push como fuente primaria; descarga completa como reconciliación
 
@@ -65,9 +67,9 @@ Alternativa descartada: polling frecuente como fuente primaria. Sin endpoint inc
 
 `POST /api/desktop/credential-events` recibe `{operation, occurred_at, ...}` con payload por operación:
 
-- `issued`: `{credential: {id, serial_number, issued_at, expiration_date, max_expiration_date, scan_kind}, student_id}` → upsert de `Credential` + cierre de la relación activa previa del estudiante (reemisión) + creación de `StudentCredential`. Idempotente: repetir el mismo `issued` no duplica.
+- `issued`: `{credential: {id, serial_number, issued_at, expiration_date, max_expiration_date}, student_id}` → upsert de `Credential` + cierre de la relación activa previa del estudiante (reemisión) + creación de `StudentCredential`. Idempotente: repetir el mismo `issued` no duplica. `max_expiration_date` es obligatorio y debe estar a favor de `expiration_date` (`expiration_date ≤ max_expiration_date`); violación → 422.
 - `revoked`: `{credential_id, revoked_at}` → fija `revoked_at` y cierra la relación activa.
-- `validity_extended`: `{credential_id, expiration_date, max_expiration_date}` → actualiza vigencias.
+- `validity_extended`: `{credential_id, expiration_date}` → actualiza `expiration_date` del espejo. `max_expiration_date` es un techo fijado en el alta (`issued`) e inmutable después: una vigencia pretendida mayor que el techo lanza `ExpirationBeyondMax` (→ 422); la misma validación de consistencia aplica al `issued` (`expiration_date ≤ max_expiration_date`).
 
 `revoked`/`validity_extended` sobre credencial desconocida → **404** (decisión explícita): el push de `issued` es la fuente de alta; si se perdió, la reconciliación por cron repara el espejo y el escritorio puede reintentar.
 
@@ -123,4 +125,3 @@ Ninguna bloqueante. A resolver en implementación:
 
 - Nombre final de las variables de entorno (`NIERIKA_API_BASE_URL`/`NIERIKA_API_KEY` vs. prefijo `CREDENTIALS_...`), siguiendo el estilo del `.env` actual.
 - Valor exacto del `limit` por página al consumir el endpoint de Nierika (default razonable: 500, ajustable por settings).
-- Valores concretos de `scan_kind` que Nierika emite (se almacena como texto libre hasta conocer el catálogo).

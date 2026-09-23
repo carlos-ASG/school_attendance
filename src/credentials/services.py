@@ -19,6 +19,27 @@ class CredentialNotFound(ValidationError):
     """El evento referencia una credencial inexistente."""
 
 
+class ExpirationBeyondMax(ValidationError):
+    """La vigencia pretendida excede la expiración máxima de la credencial."""
+
+
+class MaxExpirationRequired(ValidationError):
+    """El evento issued no trae max_expiration_date (techo obligatorio)."""
+
+
+def _validate_vigencia(
+    *, expiration_date: datetime | None, max_expiration_date: datetime | None
+) -> None:
+    if (
+        expiration_date is not None
+        and max_expiration_date is not None
+        and expiration_date > max_expiration_date
+    ):
+        raise ExpirationBeyondMax(
+            'La vigencia excede la expiración máxima de la credencial.'
+        )
+
+
 @transaction.atomic
 def credential_issue(
     *, student_id: UUID, credential: dict[str, object]
@@ -30,6 +51,15 @@ def credential_issue(
     (historial preservado) y la activa pasa a ser esta.
     """
     now = timezone.now()
+    max_expiration = credential['max_expiration_date']
+    if max_expiration is None:
+        raise MaxExpirationRequired(
+            'La credencial requiere max_expiration_date.'
+        )
+    _validate_vigencia(
+        expiration_date=credential['expiration_date'],
+        max_expiration_date=max_expiration,
+    )
     student = get_student(student_id=student_id)
     if student is None:
         raise StudentNotFound('Estudiante no encontrado.')
@@ -40,7 +70,6 @@ def credential_issue(
             'issued_at': credential['issued_at'],
             'expiration_date': credential['expiration_date'],
             'max_expiration_date': credential['max_expiration_date'],
-            'scan_kind': credential['scan_kind'],
             'synced_at': now,
         },
     )
@@ -77,16 +106,21 @@ def credential_extend_validity(
     *,
     credential_id: UUID,
     expiration_date: datetime,
-    max_expiration_date: datetime | None,
 ) -> None:
+    """Actualiza `expiration_date` dentro del techo `max_expiration_date`.
+
+    `max_expiration_date` es inmutable tras el alta: solo delimita la
+    extensión. Extender más allá del techo lanza `ExpirationBeyondMax`.
+    """
     now = timezone.now()
     try:
         credential = Credential.objects.select_for_update().get(pk=credential_id)
     except Credential.DoesNotExist:
         raise CredentialNotFound('Credencial no encontrada.') from None
-    credential.expiration_date = expiration_date
-    credential.max_expiration_date = max_expiration_date
-    credential.synced_at = now
-    credential.save(
-        update_fields=['expiration_date', 'max_expiration_date', 'synced_at']
+    _validate_vigencia(
+        expiration_date=expiration_date,
+        max_expiration_date=credential.max_expiration_date,
     )
+    credential.expiration_date = expiration_date
+    credential.synced_at = now
+    credential.save(update_fields=['expiration_date', 'synced_at'])

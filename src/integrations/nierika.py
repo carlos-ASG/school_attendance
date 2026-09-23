@@ -31,7 +31,6 @@ def parse_credential_item(item: dict[str, Any]) -> dict[str, Any]:
         'expiration_date': parse_datetime(item.get('ExpirationDate')),
         'max_expiration_date': parse_datetime(item.get('MaxExpirationDate')),
         'revoked_at': parse_datetime(item.get('RevokedAt')),
-        'scan_kind': item.get('ScanKind') or '',
     }
 
 

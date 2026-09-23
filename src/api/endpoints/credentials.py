@@ -83,16 +83,23 @@ async def credential_events(
             if payload.credential_id is None or payload.expiration_date is None:
                 raise HttpError(
                     422,
-                    'El evento validity_extended requiere credential_id,'
-                    ' expiration_date y max_expiration_date.',
+                    'El evento validity_extended requiere credential_id'
+                    ' y expiration_date.',
                 )
             await sync_to_async(services.credential_extend_validity)(
                 credential_id=payload.credential_id,
                 expiration_date=payload.expiration_date,
-                max_expiration_date=payload.max_expiration_date,
             )
     except services.StudentNotFound:
         raise HttpError(422, 'Estudiante no encontrado.') from None
+    except services.MaxExpirationRequired:
+        raise HttpError(
+            422, 'La credencial requiere max_expiration_date.'
+        ) from None
+    except services.ExpirationBeyondMax:
+        raise HttpError(
+            422, 'La vigencia excede la expiración máxima de la credencial.'
+        ) from None
     except services.CredentialNotFound:
         raise HttpError(404, 'Credencial no encontrada.') from None
     return CredentialEventApplied(status='applied', operation=payload.operation)

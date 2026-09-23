@@ -21,8 +21,7 @@ class IssuedCredentialIn(Schema):
     serial_number: str
     issued_at: datetime | None = None
     expiration_date: datetime | None = None
-    max_expiration_date: datetime | None = None
-    scan_kind: str = ''
+    max_expiration_date: datetime
 
 
 class CredentialEventIn(Schema):
@@ -38,7 +37,6 @@ class CredentialEventIn(Schema):
     revoked_at: datetime | None = None
     # validity_extended
     expiration_date: datetime | None = None
-    max_expiration_date: datetime | None = None
 
 
 class CredentialEventApplied(Schema):

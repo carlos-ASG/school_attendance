@@ -18,9 +18,8 @@ class Credential(models.Model):
     serial_number = models.CharField('Número de serie', max_length=100, db_index=True)
     issued_at = models.DateTimeField('Fecha de emisión', null=True, blank=True)
     expiration_date = models.DateTimeField('Fecha de expiración', null=True, blank=True)
-    max_expiration_date = models.DateTimeField('Expiración máxima', null=True, blank=True)
+    max_expiration_date = models.DateTimeField('Expiración máxima')
     revoked_at = models.DateTimeField('Fecha de revocación', null=True, blank=True)
-    scan_kind = models.CharField('Tipo de escaneo', max_length=50, blank=True, default='')
     synced_at = models.DateTimeField('Última sincronización', null=True, blank=True)
 
     class Meta:

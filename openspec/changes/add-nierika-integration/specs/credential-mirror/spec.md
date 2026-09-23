@@ -29,11 +29,15 @@ El command SHALL ser un no-op (exit code 0 con mensaje informativo, sin llamadas
 - **THEN** el command falla con error no-cero y mensaje que no incluye el valor de la key
 
 ### Requirement: Espejo almacena hechos crudos sin datos personales
-La tabla espejo SHALL persistir exclusivamente `id` (UUID de Nierika, PK), `serial_number`, `issued_at`, `expiration_date`, `max_expiration_date`, `revoked_at`, `scan_kind` y `synced_at`. NO almacenará nombre, matrícula, fotografía ni datos del titular. El `id` es la PK asignada por Nierika (no se genera localmente).
+La tabla espejo SHALL persistir exclusivamente `id` (UUID de Nierika, PK), `serial_number`, `issued_at`, `expiration_date`, `max_expiration_date`, `revoked_at` y `synced_at`. Los campos del payload de Nierika sin significado en este dominio (p.ej. `ScanKind`) NO se persistirán. NO almacenará nombre, matrícula, fotografía ni datos del titular. El `id` es la PK asignada por Nierika (no se genera localmente).
 
 #### Scenario: Credencial emitida queda reflejada
 - **WHEN** el command descarga una credencial con sus campos mínimos
 - **THEN** existe una fila local con exactamente esos campos más `synced_at`, sin campos del titular
+
+#### Scenario: Fila del catálogo sin techo de vigencia
+- **WHEN** el catálogo trae una credencial sin `MaxExpirationDate`
+- **THEN** el command la salta con un warning (id/serial) y no la persiste; el resto de la descarga continúa con exit code 0
 
 ### Requirement: Estado derivado por precedencia
 El estado de una credencial (`Active`/`Revoked`/`Expired`) SHALL calcularse en Django con precedencia `Revoked > Expired > Active` evaluada contra la hora UTC actual, con el mismo criterio que el backend Nierika (`DeriveStatus`). El estado NO se persiste en la base de datos.

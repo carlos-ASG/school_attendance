@@ -17,7 +17,9 @@ espec de Nierika:
   `?limit={limit}&cursor={cursor}` y sigue el cursor opaco devuelto por el
   servidor hasta `hasMore=false` (default `limit=500`)
 - Campos por credencial: `Id`, `SerialNumber`, `IssuedAt`, `ExpirationDate`,
-  `MaxExpirationDate`, `RevokedAt?`, `ScanKind` (PascalCase, fechas ISO 8601)
+  `MaxExpirationDate`, `RevokedAt?` (PascalCase, fechas ISO 8601). El payload
+  también trae `ScanKind`, dato del dominio de Nierika sin consumidor local:
+  Django lo ignora.
 
 > Pendiente: verificación end-to-end del contrato cuando el backend Nierika
 > despliegue el change `add-issuer-api-keys`; hasta entonces el cliente se
@@ -32,6 +34,9 @@ uv run manage.py sync_nierika_credentials
 - No-op (exit 0, sin llamadas HTTP) si `NIERIKA_API_KEY` no está configurada.
 - Upsert idempotente por `id` en `credentials.Credential` fijando `synced_at`;
   corrige pushes perdidos.
+- Filas del catálogo sin `MaxExpirationDate` se saltan con warning (el techo
+  de vigencia es obligatorio en el dominio `credentials`); el resto de la
+  descarga continúa y el command termina con exit 0.
 
 Entrada de cron sugerida (cada 30–60 min, según despliegue):
 
