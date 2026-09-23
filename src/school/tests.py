@@ -37,8 +37,8 @@ from .models import (
     Teacher,
 )
 from .selectors import (
-    get_active_cycle,
     get_course_attendance_summary,
+    get_current_school_cycle,
     get_non_school_day,
     get_student_attendance_summary,
 )
@@ -452,12 +452,16 @@ class CalendarHelperTests(TestCase):
     def setUp(self) -> None:
         _, _, _, _, self.course = make_course_data('Grupo Calendar')
 
-    def test_get_active_cycle_returns_cycle_containing_date(self) -> None:
+    def test_get_current_school_cycle_returns_cycle_containing_date(self) -> None:
+        self.assertEqual(get_current_school_cycle(), self.course.school_cycle)
         self.assertEqual(
-            get_active_cycle(value=timezone.now().date()), self.course.school_cycle
+            get_current_school_cycle(value=timezone.now().date()),
+            self.course.school_cycle,
         )
         self.assertIsNone(
-            get_active_cycle(value=self.course.school_cycle.end_date + timedelta(days=10))
+            get_current_school_cycle(
+                value=self.course.school_cycle.end_date + timedelta(days=10)
+            )
         )
 
     def test_get_non_school_day_matches_single_and_range(self) -> None:

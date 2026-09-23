@@ -1002,13 +1002,13 @@ class DashboardViewTests(TestCase):
         url = reverse('teacher_panel:dashboard')
         response = self.client.get(url)
         courses = list(response.context['courses'])
-        others = list(response.context['other_cycle_courses'])
+        others = list(response.context['previous_cycle_courses'])
         self.assertIn(self.course, courses)
         self.assertNotIn(past_course, courses)
         self.assertIn(past_course, others)
         self.assertNotIn(self.course, others)
 
-    def test_other_cycle_courses_section_links_to_course_detail(self) -> None:
+    def test_previous_cycle_courses_section_links_to_course_detail(self) -> None:
         past_cycle = make_cycle(
             'Ciclo Pasado Dash', start=timezone.now().date() - timedelta(days=200),
             end=timezone.now().date() - timedelta(days=80),
@@ -1020,7 +1020,7 @@ class DashboardViewTests(TestCase):
         )
         url = reverse('teacher_panel:dashboard')
         response = self.client.get(url)
-        self.assertContains(response, 'Otros ciclos')
+        self.assertContains(response, 'Ciclos anteriores')
         self.assertContains(response, 'Ciclo Pasado Dash')
         self.assertContains(
             response,

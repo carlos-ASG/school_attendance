@@ -1,8 +1,7 @@
-from datetime import date
-
 from django.db.models import Count, QuerySet
+from django.utils import timezone
 
-from ..models import Course, Teacher
+from ..models import Course, SchoolCycle, Teacher
 
 
 def teacher_courses(*, teacher: Teacher) -> QuerySet[Course]:
@@ -14,28 +13,36 @@ def teacher_courses(*, teacher: Teacher) -> QuerySet[Course]:
     )
 
 
-def teacher_dashboard_courses(*, teacher: Teacher, value: date) -> QuerySet[Course]:
-    """Courses of `teacher` whose cycle contains `value`, with student counts."""
+def teacher_current_courses(
+    *, teacher: Teacher, school_cycle: SchoolCycle | None
+) -> QuerySet[Course]:
+    """Courses of `teacher` in `school_cycle`, with student counts.
+
+    An empty queryset when there is no active cycle.
+    """
+    if school_cycle is None:
+        return Course.objects.none()
     return (
-        Course.objects.filter(
-            teacher=teacher,
-            school_cycle__start_date__lte=value,
-            school_cycle__end_date__gte=value,
-        )
+        Course.objects.filter(teacher=teacher, school_cycle=school_cycle)
         .select_related('subject', 'teacher', 'student_group', 'school_cycle')
         .annotate(student_count=Count('student_group__students'))
         .prefetch_related('schedule_slots')
     )
 
 
-def teacher_other_cycle_courses(*, teacher: Teacher, value: date) -> QuerySet[Course]:
-    """Courses of `teacher` whose cycle does not contain `value`, ordered."""
+def teacher_previous_cycle_courses(
+    *, teacher: Teacher, school_cycle: SchoolCycle | None
+) -> QuerySet[Course]:
+    """Courses of `teacher` in cycles that ended before `school_cycle` started.
+
+    When `school_cycle` is None the anchor falls back to today, so courses
+    in already-finished cycles remain visible. Ordered oldest cycle first.
+    """
+    anchor = (
+        school_cycle.start_date if school_cycle is not None else timezone.now().date()
+    )
     return (
-        Course.objects.filter(teacher=teacher)
-        .exclude(
-            school_cycle__start_date__lte=value,
-            school_cycle__end_date__gte=value,
-        )
+        Course.objects.filter(teacher=teacher, school_cycle__end_date__lt=anchor)
         .select_related('subject', 'teacher', 'student_group', 'school_cycle')
         .annotate(student_count=Count('student_group__students'))
         .prefetch_related('schedule_slots')

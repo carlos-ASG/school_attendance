@@ -7,12 +7,15 @@ teacher panel depend on. They never mutate data.
 from datetime import date
 
 from django.db.models import Q
+from django.utils import timezone
 
 from ..models import NonSchoolDay, SchoolCycle
 
 
-def get_active_cycle(*, value: date) -> SchoolCycle | None:
-    """Return the single SchoolCycle containing the date, or None."""
+def get_current_school_cycle(*, value: date | None = None) -> SchoolCycle | None:
+    """Return the single SchoolCycle containing `value` (today by default), or None."""
+    if value is None:
+        value = timezone.now().date()
     return (
         SchoolCycle.objects.filter(start_date__lte=value, end_date__gte=value)
         .order_by('pk')

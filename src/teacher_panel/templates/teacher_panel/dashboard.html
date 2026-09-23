@@ -23,7 +23,7 @@
             <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
                 Hoy no hay clases — {{ non_school_day.name }}
             </div>
-        {% elif not active_cycle %}
+        {% elif not current_cycle %}
             <div class="rounded-md border px-4 py-3 text-sm text-muted-foreground" role="alert">
                 No hay ciclo escolar en curso.
             </div>
@@ -67,10 +67,10 @@
             <p>No tienes cursos asignados aún.</p>
         {% endfor %}
 
-        {% if other_cycle_courses %}
+        {% if previous_cycle_courses %}
             <div class="flex flex-col gap-4">
-                <h2 class="text-xl font-semibold tracking-tight">Otros ciclos</h2>
-                {% for course in other_cycle_courses %}
+                <h2 class="text-xl font-semibold tracking-tight">Ciclos anteriores</h2>
+                {% for course in previous_cycle_courses %}
                     <c-card>
                         <c-card.header>
                             <c-card.title>{{ course.subject }}</c-card.title>
