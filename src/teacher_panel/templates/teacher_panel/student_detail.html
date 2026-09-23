@@ -1,0 +1,57 @@
+{% extends "teacher_panel/base.html" %}
+
+{% block title %}{{ student }} — Panel del Profesor{% endblock %}
+
+{% block breadcrumb %}
+    <c-breadcrumb>
+        <c-breadcrumb.item href="{% url 'teacher_panel:dashboard' %}">
+            <c-icon.house class="size-4"/>
+        </c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item href="{% url 'teacher_panel:course_detail' course.pk %}">{{ course.subject }}</c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item>{{ student }}</c-breadcrumb.item>
+    </c-breadcrumb>
+{% endblock %}
+
+{% block content %}
+    <c-layout.surface>
+        <c-slot name="header">
+            <div class="flex items-center gap-4">
+                <c-student_photo src="{% if student.photo %}{{ student.photo.url }}{% endif %}" alt="{{ student }}"/>
+                <div class="flex flex-col gap-1">
+                    <h2 class="text-xl font-semibold tracking-tight">{{ student }}</h2>
+                    <p class="text-sm text-muted-foreground">
+                        {{ course.subject }} · {{ course.student_group }}
+                    </p>
+                </div>
+            </div>
+        </c-slot>
+
+        <c-card>
+            <c-card.header>
+                <c-card.title>Datos personales</c-card.title>
+            </c-card.header>
+            <c-card.content>
+                <c-detail_list>
+                    <c-detail_list.item label="Nombre">{{ student.first_name }}</c-detail_list.item>
+                    <c-detail_list.item label="Apellido paterno">{{ student.paternal_surname }}</c-detail_list.item>
+                    <c-detail_list.item label="Apellido materno">{{ student.maternal_surname }}</c-detail_list.item>
+                    <c-detail_list.item label="Correo electrónico">{{ student.email|default:"—" }}</c-detail_list.item>
+                    <c-detail_list.item label="Grupo">{{ course.student_group }}</c-detail_list.item>
+                </c-detail_list>
+            </c-card.content>
+        </c-card>
+
+        <c-card>
+            <c-card.header>
+                <c-card.title>Asistencia en el curso</c-card.title>
+            </c-card.header>
+            <c-card.content>
+                <c-detail_list>
+                    <c-detail_list.item label="{{ course.subject }}">{{ attendance.attended }}/{{ attendance.total }} ({{ attendance.percentage }}%)</c-detail_list.item>
+                </c-detail_list>
+            </c-card.content>
+        </c-card>
+    </c-layout.surface>
+{% endblock %}

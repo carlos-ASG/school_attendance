@@ -884,3 +884,100 @@ class TeacherPanelPhotoExclusionTests(TestCase):
         self.assert_no_photo_references(
             reverse('teacher_panel:session_detail', args=[self.session.pk]), 'Pérez'
         )
+
+
+@override_settings(MEDIA_ROOT=_PHOTO_MEDIA_ROOT)
+class StudentDetailViewTests(TestCase):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.group = StudentGroup.objects.create(name='Grupo Detalle')
+        cls.student = Student.objects.create(
+            first_name='Ana', paternal_surname='Pérez', maternal_surname='López'
+        )
+        cls.outsider = Student.objects.create(
+            first_name='Beto', paternal_surname='Ramos', maternal_surname='Soto'
+        )
+        cls.group.students.add(cls.student)
+        cls.teacher_user = get_user_model().objects.create_user(
+            'profe-detalle', password='pass'
+        )
+        cls.teacher = Teacher.objects.create(
+            first_name='Marta', last_name='López', user=cls.teacher_user
+        )
+        cls.other_user = get_user_model().objects.create_user(
+            'profe-ajeno', password='pass'
+        )
+        cls.other_teacher = Teacher.objects.create(
+            first_name='Otro', last_name='Docente', user=cls.other_user
+        )
+        subject = Subject.objects.create(name='Materia Detalle')
+        cls.course = Course.objects.create(
+            student_group=cls.group,
+            teacher=cls.teacher,
+            subject=subject,
+            school_cycle=make_cycle('Ciclo Detalle'),
+        )
+        cls.other_course = Course.objects.create(
+            student_group=cls.group,
+            teacher=cls.other_teacher,
+            subject=subject,
+            school_cycle=make_cycle('Ciclo Ajeno'),
+        )
+        cls.empty_course = Course.objects.create(
+            student_group=cls.group,
+            teacher=cls.teacher,
+            subject=Subject.objects.create(name='Materia Vacía'),
+            school_cycle=make_cycle('Ciclo Vacío'),
+        )
+        cls.session = AttendanceSession.objects.create(
+            course=cls.course,
+            date=timezone.now().date() - timedelta(days=1),
+            created_by=cls.teacher,
+        )
+        create_attendance_records(cls.session)
+
+    def setUp(self) -> None:
+        self.client.force_login(self.teacher_user)
+
+    def detail_url(self, course: Course, student: Student) -> str:
+        return reverse(
+            'teacher_panel:course_student_detail', args=[course.pk, student.pk]
+        )
+
+    def test_teacher_sees_student_data_and_attendance(self) -> None:
+        response = self.client.get(self.detail_url(self.course, self.student))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Pérez López, Ana')
+        self.assertContains(response, 'Pérez')
+        self.assertContains(response, 'López')
+        self.assertContains(response, 'Ana')
+        self.assertContains(response, 'Grupo Detalle')
+        self.assertContains(response, '1/1 (100.0%)')
+
+    def test_photo_displayed_when_present(self) -> None:
+        self.student.photo.save(
+            'detalle.jpg', SimpleUploadedFile('detalle.jpg', _small_jpeg_bytes()), save=True
+        )
+        self.addCleanup(self.student.photo.delete, save=False)
+        response = self.client.get(self.detail_url(self.course, self.student))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '/media/')
+
+    def test_image_off_fallback_without_photo(self) -> None:
+        response = self.client.get(self.detail_url(self.course, self.student))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '/media/')
+        self.assertContains(response, 'M10.41 10.41')
+
+    def test_other_teachers_course_404(self) -> None:
+        response = self.client.get(self.detail_url(self.other_course, self.student))
+        self.assertEqual(response.status_code, 404)
+
+    def test_student_outside_group_404(self) -> None:
+        response = self.client.get(self.detail_url(self.course, self.outsider))
+        self.assertEqual(response.status_code, 404)
+
+    def test_course_without_sessions_shows_zero(self) -> None:
+        response = self.client.get(self.detail_url(self.empty_course, self.student))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '0/0 (0%)')

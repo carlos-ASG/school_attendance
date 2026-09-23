@@ -70,7 +70,12 @@
             <c-card.content>
                 <c-detail_list header_label="Estudiante" header_value="Asistencia">
                     {% for student_pk, row in attendance.items %}
-                        <c-detail_list.item label="{{ row.student }}">{{ row.attended }}/{{ row.total }} ({{ row.percentage }}%)</c-detail_list.item>
+                        <c-detail_list.item>
+                            <c-slot name="label">
+                                <c-quiet_text href="{% url 'teacher_panel:course_student_detail' course.pk row.student.pk %}">{{ row.student }}</c-quiet_text>
+                            </c-slot>
+                            {{ row.attended }}/{{ row.total }} ({{ row.percentage }}%)
+                        </c-detail_list.item>
                     {% empty %}
                         <c-detail_list.item>No hay estudiantes.</c-detail_list.item>
                     {% endfor %}
