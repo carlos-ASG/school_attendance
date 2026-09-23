@@ -71,7 +71,29 @@ def test_dashboard_renders_for_teacher(client, teacher_user):
     assert client.get(reverse('teacher_panel:dashboard')).status_code == 200
 ```
 
-Class/module marking: `pytestmark = pytest.mark.django_db` at module level.
+Mark database access at exactly ONE level: module (`pytestmark =
+pytest.mark.django_db`), class (`@pytest.mark.django_db` above the class), or
+single function. Stacking levels is redundant.
+
+## Plain functions first — classes are optional
+
+pytest does not need unittest-style classes; the four patterns above are the
+idiom. Reach for a class only to (a) group related tests in a large file or
+(b) attach an `autouse` fixture to just that group:
+
+```python
+@pytest.mark.django_db
+class TestUserPermissions:
+    @pytest.fixture(autouse=True)
+    def setup_role(self):
+        self.role = 'admin'   # runs before each test in this class only
+
+    def test_admin_access(self):
+        assert self.role == 'admin'
+```
+
+Class rules: name starts with `Test`, no `__init__` method, and never inherit
+from `unittest.TestCase` (that disables pytest's fixture injection).
 
 ## Choosing a fixture or marker
 
@@ -96,6 +118,8 @@ overrides: `references/database.md`.
 
 - **DB access is blocked by default.** A test touching the ORM without the
   marker (or a `db`-style fixture) fails on purpose — add the marker.
+- **One marker level is enough.** Module `pytestmark` OR class decorator OR
+  per-function `@pytest.mark.django_db` — never more than one.
 - **The marker on a test does NOT grant DB access to its fixtures' setup
   code** (pytest fixture ordering). Request `db` inside the fixture.
 - Test DB is throwaway in-memory SQLite — tests can never touch
