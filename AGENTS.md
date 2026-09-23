@@ -3,7 +3,8 @@
 ## Commands
 
 - Package/env is managed by `uv` (Python >= 3.12). Always run Django via `uv run manage.py <command>` (e.g. `uv run manage.py check`, `uv run manage.py migrate`, `uv run manage.py runserver`).
-- No linter or CI yet. Verification after changes: `uv run manage.py check`, then `uv run manage.py test` (apps have Django test suites: `src/school/tests.py`, `src/teacher_panel/tests.py`, `src/api/tests.py`, `src/integrations/tests.py`). Known local-env failure: `integrations.tests.NierikaSettingsTests.test_variables_default_to_empty_strings` fails when `.env` sets `NIERIKA_API_BASE_URL`/`NIERIKA_API_KEY` (test expects unset defaults) — environmental, not a code regression.
+- No linter or CI yet. Verification after changes: `uv run manage.py check`, then `uv run pytest` (pytest + pytest-django; config in `pyproject.toml` under `[tool.pytest.ini_options]`).
+- Tests use `config.test_settings` (via `DJANGO_SETTINGS_MODULE`), which is `config.settings` but always runs on in-memory SQLite — the suite never requires the PostgreSQL server from `.env` (`DATABASE_URL`) to be installed or running. Write tests as plain functions in `test_*.py` files next to the code (see `src/school/test_example.py` for the reference style: `assert`, `@pytest.mark.django_db`, fixtures, `client`).
 - Tailwind CSS is prebuilt (`core-ui/css/output.css` via django-tailwind-cli). After adding new utility classes to any template, run `uv run manage.py tailwind build` — stale CSS silently drops unknown classes (no error, just missing padding/colors).
 
 ## Layout quirks

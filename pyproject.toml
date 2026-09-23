@@ -33,3 +33,14 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = ["config", "accounts", "school", "teacher_panel", "core_ui", "api", "credentials", "integrations"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.test_settings"
+python_files = ["test_*.py", "tests.py"]
+testpaths = ["src"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-django>=4.14.0",
+]

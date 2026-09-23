@@ -190,11 +190,6 @@ STATICFILES_DIRS = [BASE_DIR / 'src' / 'core_ui' / 'static']
 TAILWIND_CLI_SRC_CSS = 'src/core_ui/input.css'
 TAILWIND_CLI_DIST_CSS = 'core-ui/css/output.css'
 
-# Test discovery for apps living under src/ (tests.py inside each app package)
-
-TEST_RUNNER = 'config.test_runner.SrcLayoutDiscoverRunner'
-
-
 # Form widget templates: resolve from app template dirs so core_ui can override
 # django/forms/widgets/*.html (all default Textareas render via <c-textarea>)
 
