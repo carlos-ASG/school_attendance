@@ -10,12 +10,12 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView
 
-from school.calendar import validate_session_date
 from school.models import (
     AttendanceSession,
     Course,
     create_attendance_records,
 )
+from school.services import validate_session_date
 
 from .mixins import TeacherRequiredMixin
 
@@ -44,7 +44,7 @@ class TodaySessionCreateView(TeacherRequiredMixin, View):
         session = course.sessions.filter(date=today).first()
         if session is None:
             try:
-                validate_session_date(course, today)
+                validate_session_date(course=course, value=today)
             except ValidationError as error:
                 messages.error(request, ' '.join(error.messages))
                 return HttpResponseRedirect(

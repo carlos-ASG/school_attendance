@@ -10,7 +10,6 @@ from django.views import View
 from django.views.generic import ListView
 from django_htmx.http import retarget
 
-from school.calendar import SESSION_FROZEN_MESSAGE, session_is_frozen
 from school.models import AttendanceSession, Course, create_attendance_records
 
 from ..forms import SessionForm
@@ -86,8 +85,8 @@ class SessionDeleteView(TeacherRequiredMixin, View):
             course__teacher=self.teacher,
         )
         course = session.course
-        if session_is_frozen(session):
-            messages.error(request, SESSION_FROZEN_MESSAGE)
+        if session.is_frozen():
+            messages.error(request, AttendanceSession.FROZEN_MESSAGE)
             if request.htmx:
                 return render(
                     request,

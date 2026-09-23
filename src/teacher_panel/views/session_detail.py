@@ -9,7 +9,6 @@ from django.utils import timezone
 from django.views.generic import DetailView
 from django_htmx.http import retarget
 
-from school.calendar import SESSION_FROZEN_MESSAGE, session_is_frozen
 from school.models import AttendanceSession
 
 from ..forms import AttendanceEditFormSet
@@ -40,7 +39,7 @@ class PreviousSessionDetailView(TeacherRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        context['session_is_editable'] = not session_is_frozen(self.object)
+        context['session_is_editable'] = not self.object.is_frozen()
         context['edit_mode'] = (
             context['session_is_editable'] and self.request.GET.get('edit') == '1'
         )
@@ -56,8 +55,8 @@ class PreviousSessionDetailView(TeacherRequiredMixin, DetailView):
             return HttpResponseRedirect(
                 reverse('teacher_panel:today_session_detail', args=[self.object.pk])
             )
-        if session_is_frozen(self.object):
-            messages.error(request, SESSION_FROZEN_MESSAGE)
+        if self.object.is_frozen():
+            messages.error(request, AttendanceSession.FROZEN_MESSAGE)
             if request.htmx:
                 return retarget(self._render_readonly(request), '#attendance-panel')
             return HttpResponseRedirect(

@@ -1,11 +1,12 @@
 from typing import Any
 
+from django.core.exceptions import ValidationError
 from django.db.models import Count, QuerySet
 from django.utils import timezone
 from django.views.generic import DetailView
 
-from school.calendar import today_session_block_reason
 from school.models import AttendanceRecord, Course
+from school.services import validate_session_date
 
 from .mixins import TeacherRequiredMixin
 
@@ -32,9 +33,12 @@ class CourseDetailView(TeacherRequiredMixin, DetailView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['attendance'] = self.get_attendance_summary()
-        context['today_reason'] = today_session_block_reason(
-            self.object, timezone.now().date()
-        )
+        try:
+            validate_session_date(course=self.object, value=timezone.now().date())
+        except ValidationError as error:
+            context['today_reason'] = ' '.join(error.messages)
+        else:
+            context['today_reason'] = None
         return context
 
     def get_attendance_summary(self) -> dict[int, dict[str, Any]]:

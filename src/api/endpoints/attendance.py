@@ -6,7 +6,6 @@ from django.utils import timezone
 from ninja import Router
 from ninja.errors import HttpError
 
-from school.calendar import SESSION_FROZEN_MESSAGE, session_is_frozen
 from school.models import AttendanceRecord, AttendanceSession
 
 from ..schemas import (
@@ -33,8 +32,8 @@ def update_session_records(
     )
     if session is None:
         raise HttpError(404, 'Sesión no encontrada.')
-    if session_is_frozen(session):
-        raise HttpError(422, SESSION_FROZEN_MESSAGE)
+    if session.is_frozen():
+        raise HttpError(422, AttendanceSession.FROZEN_MESSAGE)
 
     entries = {entry.id: entry for entry in payload.records}
     found = {

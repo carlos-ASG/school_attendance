@@ -1,11 +1,10 @@
-from datetime import date
 from typing import Any
 
 from django import forms
 from django.utils import timezone
 
-from school.calendar import validate_session_date
 from school.models import AttendanceRecord, AttendanceSession, Course
+from school.services import validate_session_date
 
 
 class SessionForm(forms.Form):
@@ -33,7 +32,7 @@ class SessionForm(forms.Form):
         if AttendanceSession.objects.filter(course=self.course, date=date).exists():
             raise forms.ValidationError('Ya existe una sesión para esta fecha.')
         if self.course is not None:
-            validate_session_date(self.course, date)
+            validate_session_date(course=self.course, value=date)
         return date
 
 

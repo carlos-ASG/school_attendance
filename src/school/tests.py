@@ -18,12 +18,6 @@ from django.utils import timezone
 from PIL import ExifTags, Image
 
 from .admin import AttendanceRecordInline
-from .calendar import (
-    get_active_cycle,
-    get_non_school_day,
-    session_is_frozen,
-    validate_session_date,
-)
 from .images import (
     MAX_PHOTO_SIZE_BYTES,
     PHOTO_INVALID_ERROR,
@@ -43,6 +37,8 @@ from .models import (
     Teacher,
     create_attendance_records,
 )
+from .selectors import get_active_cycle, get_non_school_day
+from .services import validate_session_date
 
 
 def make_cycle(
@@ -447,9 +443,11 @@ class CalendarHelperTests(TestCase):
         _, _, _, _, self.course = make_course_data('Grupo Calendar')
 
     def test_get_active_cycle_returns_cycle_containing_date(self) -> None:
-        self.assertEqual(get_active_cycle(timezone.now().date()), self.course.school_cycle)
+        self.assertEqual(
+            get_active_cycle(value=timezone.now().date()), self.course.school_cycle
+        )
         self.assertIsNone(
-            get_active_cycle(self.course.school_cycle.end_date + timedelta(days=10))
+            get_active_cycle(value=self.course.school_cycle.end_date + timedelta(days=10))
         )
 
     def test_get_non_school_day_matches_single_and_range(self) -> None:
@@ -460,15 +458,18 @@ class CalendarHelperTests(TestCase):
             start_date=timezone.now().date() - timedelta(days=3),
         )
         matched = get_non_school_day(
-            self.course.school_cycle, timezone.now().date() - timedelta(days=3)
+            cycle=self.course.school_cycle,
+            value=timezone.now().date() - timedelta(days=3),
         )
         self.assertEqual(matched, single)
         self.assertIsNone(
-            get_non_school_day(self.course.school_cycle, timezone.now().date())
+            get_non_school_day(cycle=self.course.school_cycle, value=timezone.now().date())
         )
 
     def test_validate_session_date_allows_in_cycle_normal_date(self) -> None:
-        validate_session_date(self.course, timezone.now().date() - timedelta(days=1))
+        validate_session_date(
+            course=self.course, value=timezone.now().date() - timedelta(days=1)
+        )
 
     def test_validate_session_date_rejects_non_school_day(self) -> None:
         date = timezone.now().date() - timedelta(days=2)
@@ -479,20 +480,20 @@ class CalendarHelperTests(TestCase):
             start_date=date,
         )
         with self.assertRaises(ValidationError) as ctx:
-            validate_session_date(self.course, date)
+            validate_session_date(course=self.course, value=date)
         self.assertIn('Inhábil nombrado', str(ctx.exception.messages))
 
     def test_validate_session_date_rejects_out_of_cycle(self) -> None:
         date = self.course.school_cycle.end_date + timedelta(days=5)
         with self.assertRaises(ValidationError) as ctx:
-            validate_session_date(self.course, date)
+            validate_session_date(course=self.course, value=date)
         self.assertIn(str(self.course.school_cycle), str(ctx.exception.messages))
 
     def test_validate_session_date_rejects_non_scheduled_weekday(self) -> None:
         date = timezone.now().date() - timedelta(days=1)
         self.course.schedule_slots.filter(weekday=date.weekday()).delete()
         with self.assertRaises(ValidationError) as ctx:
-            validate_session_date(self.course, date)
+            validate_session_date(course=self.course, value=date)
         message = ' '.join(ctx.exception.messages)
         self.assertIn('no tiene clase los días', message)
         self.assertIn(ClassSchedule.Weekday(date.weekday()).label.lower(), message)
@@ -501,7 +502,7 @@ class CalendarHelperTests(TestCase):
         self.course.schedule_slots.all().delete()
         date = timezone.now().date() - timedelta(days=1)
         with self.assertRaises(ValidationError) as ctx:
-            validate_session_date(self.course, date)
+            validate_session_date(course=self.course, value=date)
         self.assertIn('no tiene horario asignado', str(ctx.exception.messages))
 
 
@@ -533,20 +534,20 @@ class SessionFreezeTests(TestCase):
 
     def test_session_in_active_cycle_is_not_frozen(self) -> None:
         session = self.make_session(self.course, -1)
-        self.assertFalse(session_is_frozen(session))
+        self.assertFalse(session.is_frozen())
 
     def test_session_in_past_cycle_is_frozen(self) -> None:
         session = self.make_session(self.past_course, -150)
-        self.assertTrue(session_is_frozen(session))
+        self.assertTrue(session.is_frozen())
 
     def test_gap_date_freezes_even_the_latest_cycle(self) -> None:
         session = self.make_session(self.course, -1)
         gap_date = self.past_cycle.end_date + timedelta(days=1)
-        self.assertTrue(session_is_frozen(session, gap_date))
+        self.assertTrue(session.is_frozen(gap_date))
 
     def test_course_without_cycle_is_frozen(self) -> None:
         session = AttendanceSession(course=Course(), date=timezone.now().date())
-        self.assertTrue(session_is_frozen(session))
+        self.assertTrue(session.is_frozen())
 
 
 class SchoolCycleAdminTests(TestCase):

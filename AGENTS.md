@@ -3,7 +3,7 @@
 ## Commands
 
 - Package/env is managed by `uv` (Python >= 3.12). Always run Django via `uv run manage.py <command>` (e.g. `uv run manage.py check`, `uv run manage.py migrate`, `uv run manage.py runserver`).
-- No test suite, linter, or CI yet. Minimum verification after changes: `uv run manage.py check`.
+- No linter or CI yet. Verification after changes: `uv run manage.py check`, then `uv run manage.py test` (apps have Django test suites: `src/school/tests.py`, `src/teacher_panel/tests.py`, `src/api/tests.py`, `src/integrations/tests.py`). Known local-env failure: `integrations.tests.NierikaSettingsTests.test_variables_default_to_empty_strings` fails when `.env` sets `NIERIKA_API_BASE_URL`/`NIERIKA_API_KEY` (test expects unset defaults) — environmental, not a code regression.
 - Tailwind CSS is prebuilt (`core-ui/css/output.css` via django-tailwind-cli). After adding new utility classes to any template, run `uv run manage.py tailwind build` — stale CSS silently drops unknown classes (no error, just missing padding/colors).
 
 ## Layout quirks

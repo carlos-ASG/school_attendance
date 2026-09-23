@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from datetime import date
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
@@ -8,6 +12,8 @@ from .teacher import Teacher
 
 
 class AttendanceSession(UUIDv7Model):
+    FROZEN_MESSAGE = 'Esta sesión pertenece a un ciclo anterior y es de solo lectura.'
+
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name='sessions', verbose_name='Curso'
     )
@@ -31,6 +37,22 @@ class AttendanceSession(UUIDv7Model):
     def __str__(self) -> str:
         return f'{self.course} — {self.date}'
 
+    def is_frozen(self, value: date | None = None) -> bool:
+        """Return True when this session is read-only for its Teacher (D1).
+
+        A session is frozen when its course's School Cycle does not contain
+        today, or when the course has no cycle at all. When today falls in a
+        gap between cycles every session is frozen. `value` may be
+        pre-computed by the caller to avoid a repeated ``timezone.now()``
+        call.
+        """
+        if value is None:
+            value = timezone.now().date()
+        course = self.course
+        if course.school_cycle_id is None:
+            return True
+        return not course.school_cycle.contains_date(value)
+
     def clean(self) -> None:
         """Validate the session date before saving.
 
@@ -53,7 +75,7 @@ class AttendanceSession(UUIDv7Model):
 
         Note:
             The import of ``validate_session_date`` is deferred to call time to
-            avoid a circular import (``calendar`` imports this models package).
+            avoid a circular import (``services`` imports this models package).
         """
         super().clean()
         if self.date and self.date > timezone.now().date():
@@ -63,9 +85,9 @@ class AttendanceSession(UUIDv7Model):
             # are never invalidated or blocked by later calendar changes.
             # _state.adding (not pk is None) because the UUID v7 default
             # assigns a pk at __init__ for every new instance.
-            from ..calendar import validate_session_date
+            from ..services import validate_session_date
 
             try:
-                validate_session_date(self.course, self.date)
+                validate_session_date(course=self.course, value=self.date)
             except ValidationError as error:
                 raise ValidationError({'date': error.messages}) from error
