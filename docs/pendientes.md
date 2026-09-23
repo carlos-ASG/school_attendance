@@ -11,5 +11,6 @@
 - [ ] ver que pasa si hay discrepacia de credenciales entre nierika y PACE, que pasa si se extiende o revoca una credenciales que PACE no tiene registrada?
 - [ ] Implementar soporte de zonas horarias
 - [ ] implementar soporte para clases de ayuda fuera de horario de clase que no tengas repercusiones con la asistencia normal
+- [ ] revisar test_credential_events.py
 
 - capacidad para configurar fecha maxima de expiracion de credencial en un rango de 3 a 5 años
