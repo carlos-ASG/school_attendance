@@ -10,10 +10,10 @@ from django.views.generic import DetailView
 from django_htmx.http import retarget
 
 from school.models import AttendanceSession
+from school.selectors import teacher_sessions
 
 from ..forms import AttendanceEditFormSet
 from .mixins import TeacherRequiredMixin
-
 
 # --- Template views (full pages) ---
 
@@ -24,9 +24,7 @@ class PreviousSessionDetailView(TeacherRequiredMixin, DetailView):
     context_object_name = 'session'
 
     def get_queryset(self) -> QuerySet[AttendanceSession]:
-        return AttendanceSession.objects.filter(course__teacher=self.teacher).select_related(
-            'course__subject', 'course__student_group', 'course__school_cycle', 'created_by'
-        )
+        return teacher_sessions(teacher=self.teacher)
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()

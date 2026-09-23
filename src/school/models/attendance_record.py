@@ -13,6 +13,8 @@ class AttendanceRecord(UUIDv7Model):
         LATE = 'LATE', 'Tarde'
         EXCUSED = 'EXCUSED', 'Justificado'
 
+    ATTENDED_STATUSES = (Status.PRESENT, Status.LATE, Status.EXCUSED)
+
     session = models.ForeignKey(
         AttendanceSession, on_delete=models.CASCADE, related_name='records', verbose_name='Sesión'
     )
@@ -47,19 +49,3 @@ class AttendanceRecord(UUIDv7Model):
                     {'student': 'El estudiante no pertenece al grupo del curso de la sesión.'}
                 )
 
-
-def create_attendance_records(session: AttendanceSession) -> int:
-    """Create one AttendanceRecord per student in the session's course group.
-
-    Skips students that already have a record in the session. Returns the number
-    of records created.
-    """
-    students = session.course.student_group.students.all()
-    existing = set(
-        AttendanceRecord.objects.filter(session=session, student__in=students).values_list(
-            'student_id', flat=True
-        )
-    )
-    to_create = [AttendanceRecord(session=session, student=s) for s in students if s.id not in existing]
-    AttendanceRecord.objects.bulk_create(to_create)
-    return len(to_create)

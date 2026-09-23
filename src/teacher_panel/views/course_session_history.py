@@ -10,7 +10,13 @@ from django.views import View
 from django.views.generic import ListView
 from django_htmx.http import retarget
 
-from school.models import AttendanceSession, Course, create_attendance_records
+from school.models import AttendanceSession, Course
+from school.selectors import (
+    course_history_sessions,
+    teacher_courses,
+    teacher_sessions,
+)
+from school.services import session_create, session_delete
 
 from ..forms import SessionForm
 from .mixins import TeacherRequiredMixin, session_detail_url
@@ -24,15 +30,17 @@ class CourseSessionHistoryView(TeacherRequiredMixin, ListView):
 
     def get_course(self) -> Course:
         return get_object_or_404(
-            Course.objects.filter(teacher=self.teacher), pk=self.kwargs['pk']
+            teacher_courses(teacher=self.teacher), pk=self.kwargs['pk']
         )
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.course = self.get_course()
         return super().get(request, *args, **kwargs)
 
-    def get_queryset(self) -> QuerySet[AttendanceSession]:
-        return self.course.sessions.exclude(date=timezone.now().date())
+    def get_queryset(self) -> QuerySet:
+        return course_history_sessions(
+            course=self.course, value=timezone.now().date()
+        )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -44,12 +52,11 @@ class CourseSessionHistoryView(TeacherRequiredMixin, ListView):
         self.course = self.get_course()
         form = SessionForm(request.POST, course=self.course)
         if form.is_valid():
-            session = AttendanceSession.objects.create(
+            session = session_create(
                 course=self.course,
-                date=form.cleaned_data['date'],
+                value=form.cleaned_data['date'],
                 created_by=self.teacher,
             )
-            create_attendance_records(session)
             messages.success(request, 'Sesión creada.')
             if request.htmx:
                 return HttpResponse(
@@ -80,9 +87,7 @@ class SessionDeleteView(TeacherRequiredMixin, View):
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         session = get_object_or_404(
-            AttendanceSession.objects.select_related('course', 'course__school_cycle'),
-            pk=kwargs['pk'],
-            course__teacher=self.teacher,
+            teacher_sessions(teacher=self.teacher), pk=kwargs['pk']
         )
         course = session.course
         if session.is_frozen():
@@ -93,8 +98,8 @@ class SessionDeleteView(TeacherRequiredMixin, View):
                     'teacher_panel/course_session_history.html#session_list',
                     {
                         'course': course,
-                        'sessions': course.sessions.exclude(
-                            date=timezone.now().date()
+                        'sessions': course_history_sessions(
+                            course=course, value=timezone.now().date()
                         ),
                     },
                 )
@@ -102,7 +107,7 @@ class SessionDeleteView(TeacherRequiredMixin, View):
                 reverse('teacher_panel:course_session_history', args=[course.pk])
             )
         is_today = session.date == timezone.now().date()
-        session.delete()
+        session_delete(session=session)
         messages.success(request, 'Sesión eliminada.')
         if request.htmx:
             if is_today:
@@ -116,7 +121,9 @@ class SessionDeleteView(TeacherRequiredMixin, View):
                 )
             context = {
                 'course': course,
-                'sessions': course.sessions.exclude(date=timezone.now().date()),
+                'sessions': course_history_sessions(
+                    course=course, value=timezone.now().date()
+                ),
             }
             return render(
                 request,

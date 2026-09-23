@@ -35,10 +35,20 @@ from .models import (
     StudentGroup,
     Subject,
     Teacher,
-    create_attendance_records,
 )
-from .selectors import get_active_cycle, get_non_school_day
-from .services import validate_session_date
+from .selectors import (
+    get_active_cycle,
+    get_course_attendance_summary,
+    get_non_school_day,
+    get_student_attendance_summary,
+)
+from .services import (
+    create_attendance_records,
+    session_create,
+    session_delete,
+    session_get_or_create_today,
+    validate_session_date,
+)
 
 
 def make_cycle(
@@ -982,3 +992,164 @@ class StudentDetailViewTests(TestCase):
         response = self.client.get(self.detail_url(self.empty_course, self.student))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '0/0 (0%)')
+
+
+class SessionServiceTests(TestCase):
+    def setUp(self) -> None:
+        self.group, self.insider, self.outsider, self.teacher, self.course = (
+            make_course_data('Grupo Servicios')
+        )
+
+    def test_session_create_makes_session_and_records(self) -> None:
+        date = timezone.now().date() - timedelta(days=1)
+        session = session_create(
+            course=self.course, value=date, created_by=self.teacher
+        )
+        self.assertEqual(session.records.count(), 1)
+        self.assertEqual(session.records.get().student, self.insider)
+
+    def test_get_or_create_today_existing_session_not_revalidated(self) -> None:
+        today = timezone.now().date()
+        session = AttendanceSession.objects.create(
+            course=self.course, date=today, created_by=self.teacher
+        )
+        NonSchoolDay.objects.create(
+            cycle=self.course.school_cycle,
+            name='Asueto de hoy',
+            day_type=NonSchoolDay.DayType.ASUETO,
+            start_date=today,
+        )
+        found, created = session_get_or_create_today(
+            course=self.course, created_by=self.teacher
+        )
+        self.assertEqual(found.pk, session.pk)
+        self.assertFalse(created)
+        self.assertEqual(AttendanceRecord.objects.count(), 0)
+
+    def test_get_or_create_today_non_school_day_raises(self) -> None:
+        today = timezone.now().date()
+        NonSchoolDay.objects.create(
+            cycle=self.course.school_cycle,
+            name='Asueto de hoy',
+            day_type=NonSchoolDay.DayType.ASUETO,
+            start_date=today,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            session_get_or_create_today(course=self.course, created_by=self.teacher)
+        self.assertIn('inhábil', ' '.join(ctx.exception.messages))
+        self.assertFalse(
+            AttendanceSession.objects.filter(course=self.course).exists()
+        )
+
+    def test_get_or_create_today_out_of_cycle_raises(self) -> None:
+        past_cycle = make_cycle(
+            'Ciclo Pasado',
+            start=timezone.now().date() - timedelta(days=200),
+            end=timezone.now().date() - timedelta(days=80),
+        )
+        self.course.school_cycle = past_cycle
+        self.course.save(update_fields=['school_cycle'])
+        with self.assertRaises(ValidationError) as ctx:
+            session_get_or_create_today(course=self.course, created_by=self.teacher)
+        self.assertIn('fuera del ciclo', ' '.join(ctx.exception.messages))
+        self.assertFalse(
+            AttendanceSession.objects.filter(course=self.course).exists()
+        )
+
+    def test_get_or_create_today_without_schedule_raises(self) -> None:
+        self.course.schedule_slots.all().delete()
+        with self.assertRaises(ValidationError) as ctx:
+            session_get_or_create_today(course=self.course, created_by=self.teacher)
+        self.assertIn('no tiene horario asignado', ' '.join(ctx.exception.messages))
+        self.assertFalse(
+            AttendanceSession.objects.filter(course=self.course).exists()
+        )
+
+    def test_get_or_create_today_creates_session_and_records(self) -> None:
+        session, created = session_get_or_create_today(
+            course=self.course, created_by=self.teacher
+        )
+        self.assertTrue(created)
+        self.assertEqual(session.date, timezone.now().date())
+        self.assertEqual(session.records.count(), 1)
+        again, created_again = session_get_or_create_today(
+            course=self.course, created_by=self.teacher
+        )
+        self.assertFalse(created_again)
+        self.assertEqual(again.pk, session.pk)
+        self.assertEqual(AttendanceSession.objects.count(), 1)
+
+    def test_session_delete_removes_session_and_records(self) -> None:
+        date = timezone.now().date() - timedelta(days=1)
+        session = session_create(
+            course=self.course, value=date, created_by=self.teacher
+        )
+        session_delete(session=session)
+        self.assertFalse(
+            AttendanceSession.objects.filter(pk=session.pk).exists()
+        )
+        self.assertEqual(AttendanceRecord.objects.count(), 0)
+
+
+class AttendanceSummarySelectorTests(TestCase):
+    def setUp(self) -> None:
+        self.group, self.insider, self.outsider, self.teacher, self.course = (
+            make_course_data('Grupo Resumen')
+        )
+
+    def make_session(self, days_ago: int) -> AttendanceSession:
+        return session_create(
+            course=self.course,
+            value=timezone.now().date() - timedelta(days=days_ago),
+            created_by=self.teacher,
+        )
+
+    def test_zero_sessions_summary_is_zeroed(self) -> None:
+        summary = get_course_attendance_summary(course=self.course)
+        self.assertEqual(
+            summary[self.insider.pk],
+            {
+                'student': self.insider,
+                'attended': 0,
+                'total': 0,
+                'percentage': '0',
+            },
+        )
+
+    def test_summary_counts_attended_statuses(self) -> None:
+        self.group.students.add(self.outsider)
+        session = self.make_session(1)
+        record = session.records.get(student=self.insider)
+        record.status = AttendanceRecord.Status.LATE
+        record.save()
+        absent_record = session.records.get(student=self.outsider)
+        absent_record.status = AttendanceRecord.Status.ABSENT
+        absent_record.save()
+        summary = get_course_attendance_summary(course=self.course)
+        self.assertEqual(summary[self.insider.pk]['attended'], 1)
+        self.assertEqual(summary[self.insider.pk]['total'], 1)
+        self.assertEqual(summary[self.insider.pk]['percentage'], '100.0')
+        self.assertEqual(summary[self.outsider.pk]['attended'], 0)
+        self.assertEqual(summary[self.outsider.pk]['percentage'], '0.0')
+
+    def test_student_summary_denominator_is_total_sessions(self) -> None:
+        self.make_session(3)
+        self.make_session(2)
+        latest = self.make_session(1)
+        record = latest.records.get(student=self.insider)
+        record.status = AttendanceRecord.Status.ABSENT
+        record.save()
+        summary = get_student_attendance_summary(
+            course=self.course, student=self.insider
+        )
+        self.assertEqual(summary['attended'], 2)
+        self.assertEqual(summary['total'], 3)
+        self.assertEqual(summary['percentage'], '66.7')
+
+    def test_student_summary_without_sessions_is_zeroed(self) -> None:
+        summary = get_student_attendance_summary(
+            course=self.course, student=self.insider
+        )
+        self.assertEqual(
+            summary, {'attended': 0, 'total': 0, 'percentage': '0'}
+        )

@@ -15,8 +15,8 @@ from school.models import (
     StudentGroup,
     Subject,
     Teacher,
-    create_attendance_records,
 )
+from school.services import create_attendance_records
 from school.tests import add_full_week_schedule, make_cycle
 
 

@@ -1,4 +1,4 @@
-from .attendance_record import AttendanceRecord, create_attendance_records
+from .attendance_record import AttendanceRecord
 from .attendance_session import AttendanceSession
 from .class_schedule import ClassSchedule
 from .course import Course
@@ -31,6 +31,5 @@ __all__ = [
     'StudentGroup',
     'Subject',
     'Teacher',
-    'create_attendance_records',
     'cycle_duration_days',
 ]

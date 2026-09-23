@@ -1,11 +1,16 @@
 from typing import Any
 
-from django.db.models import Count, QuerySet
+from django.db.models import QuerySet
 from django.utils import timezone
 from django.views.generic import ListView
 
 from school.models import Course
-from school.selectors import get_active_cycle, get_non_school_day
+from school.selectors import (
+    get_active_cycle,
+    get_non_school_day,
+    teacher_dashboard_courses,
+    teacher_other_cycle_courses,
+)
 
 from .mixins import TeacherRequiredMixin
 
@@ -16,16 +21,8 @@ class DashboardView(TeacherRequiredMixin, ListView):
     context_object_name = 'courses'
 
     def get_queryset(self) -> QuerySet[Course]:
-        today = timezone.now().date()
-        return (
-            Course.objects.filter(
-                teacher=self.teacher,
-                school_cycle__start_date__lte=today,
-                school_cycle__end_date__gte=today,
-            )
-            .select_related('subject', 'teacher', 'student_group', 'school_cycle')
-            .annotate(student_count=Count('student_group__students'))
-            .prefetch_related('schedule_slots')
+        return teacher_dashboard_courses(
+            teacher=self.teacher, value=timezone.now().date()
         )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -40,15 +37,7 @@ class DashboardView(TeacherRequiredMixin, ListView):
         context['active_cycle'] = active_cycle
         context['non_school_day'] = non_school_day
 
-        context['other_cycle_courses'] = (
-            Course.objects.filter(teacher=self.teacher)
-            .exclude(
-                school_cycle__start_date__lte=today,
-                school_cycle__end_date__gte=today,
-            )
-            .select_related('subject', 'teacher', 'student_group', 'school_cycle')
-            .annotate(student_count=Count('student_group__students'))
-            .prefetch_related('schedule_slots')
-            .order_by('school_cycle__start_date', 'subject__name')
+        context['other_cycle_courses'] = teacher_other_cycle_courses(
+            teacher=self.teacher, value=today
         )
         return context

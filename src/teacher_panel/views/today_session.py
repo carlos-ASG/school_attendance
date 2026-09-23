@@ -10,12 +10,9 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView
 
-from school.models import (
-    AttendanceSession,
-    Course,
-    create_attendance_records,
-)
-from school.services import validate_session_date
+from school.models import AttendanceSession
+from school.selectors import teacher_courses, teacher_sessions
+from school.services import session_get_or_create_today
 
 from .mixins import TeacherRequiredMixin
 
@@ -38,24 +35,18 @@ class TodaySessionCreateView(TeacherRequiredMixin, View):
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         course = get_object_or_404(
-            Course.objects.filter(teacher=self.teacher), pk=kwargs['pk']
+            teacher_courses(teacher=self.teacher), pk=kwargs['pk']
         )
-        today = timezone.now().date()
-        session = course.sessions.filter(date=today).first()
-        if session is None:
-            try:
-                validate_session_date(course=course, value=today)
-            except ValidationError as error:
-                messages.error(request, ' '.join(error.messages))
-                return HttpResponseRedirect(
-                    reverse('teacher_panel:course_detail', args=[course.pk])
-                )
-            session = AttendanceSession.objects.create(
-                course=course,
-                date=today,
-                created_by=self.teacher,
+        try:
+            session, created = session_get_or_create_today(
+                course=course, created_by=self.teacher
             )
-            create_attendance_records(session)
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+            return HttpResponseRedirect(
+                reverse('teacher_panel:course_detail', args=[course.pk])
+            )
+        if created:
             messages.success(request, 'Sesión creada.')
         return HttpResponseRedirect(
             reverse('teacher_panel:today_session_detail', args=[session.pk])
@@ -67,9 +58,7 @@ class TodaySessionDetailView(TeacherRequiredMixin, DetailView):
     context_object_name = 'session'
 
     def get_queryset(self) -> QuerySet[AttendanceSession]:
-        return AttendanceSession.objects.filter(course__teacher=self.teacher).select_related(
-            'course__subject', 'course__student_group', 'created_by'
-        )
+        return teacher_sessions(teacher=self.teacher)
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()

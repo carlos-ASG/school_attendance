@@ -26,9 +26,9 @@ from .models import (
     StudentGroup,
     Subject,
     Teacher,
-    create_attendance_records,
 )
 from .resources import StudentResource
+from .services import create_attendance_records
 
 
 @admin.register(Student)

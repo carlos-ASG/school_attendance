@@ -11,8 +11,8 @@ from datetime import date
 
 from django.core.exceptions import ValidationError
 
-from .models import ClassSchedule, Course, NonSchoolDay, SchoolCycle
-from .selectors import get_non_school_day
+from ..models import ClassSchedule, Course, NonSchoolDay, SchoolCycle
+from ..selectors import get_non_school_day
 
 
 def validate_session_date(

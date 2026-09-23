@@ -7,12 +7,13 @@ from django.urls import reverse
 from django.utils import timezone
 
 from school.models import AttendanceSession, Teacher
+from school.selectors import get_teacher as get_teacher_for_user
 
 
 def get_teacher(request: HttpRequest) -> Teacher | None:
     """Return the Teacher linked to the request user, or None."""
     if request.user.is_authenticated:
-        return Teacher.objects.filter(user=request.user).first()
+        return get_teacher_for_user(user=request.user)
     return None
 
 
