@@ -12,7 +12,7 @@
     }"
     @toggle-sidebar.window="toggle()"
     :class="open && 'w-64'"
-    class="hidden h-screen w-16 shrink-0 flex-col justify-between border-e border-border bg-background md:flex {% if class %}{{ class }}{% endif %}"
+    class="hidden h-screen w-16 shrink-0 flex-col justify-between border-e border-sidebar-border bg-sidebar text-sidebar-foreground md:flex {% if class %}{{ class }}{% endif %}"
     {{ attrs }}
 >
     <div>
@@ -25,7 +25,7 @@
         </ul>
     </div>
     {% if footer %}
-        <div class="sticky inset-x-0 bottom-0 border-t border-border bg-background p-2">
+        <div class="sticky inset-x-0 bottom-0 border-t border-sidebar-border bg-sidebar p-2">
             {{ footer }}
         </div>
     {% endif %}
@@ -62,7 +62,7 @@
         x-transition:leave="transition ease-in-out duration-200"
         x-transition:leave-start="translate-x-0"
         x-transition:leave-end="-translate-x-full"
-        class="fixed inset-y-0 start-0 z-50 flex w-64 flex-col justify-between border-e border-border bg-background"
+        class="fixed inset-y-0 start-0 z-50 flex w-64 flex-col justify-between border-e border-sidebar-border bg-sidebar text-sidebar-foreground"
     >
         <div x-data="{ open: true }">
             {% if brand %}
@@ -74,7 +74,7 @@
             </ul>
         </div>
         {% if footer %}
-            <div @click="openMobile = false" class="sticky inset-x-0 bottom-0 border-t border-border bg-background p-2">
+            <div @click="openMobile = false" class="sticky inset-x-0 bottom-0 border-t border-sidebar-border bg-sidebar p-2">
                 {{ footer }}
             </div>
         {% endif %}

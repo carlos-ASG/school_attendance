@@ -2,7 +2,7 @@
 <li>
     <a href="{{ href }}"
        aria-label="{{ tooltip }}"
-       class="group relative rounded-lg px-4 py-2 text-sm font-medium {% if active or request.path == href %}bg-muted text-foreground{% else %}text-muted-foreground transition-colors hover:bg-muted hover:text-foreground{% endif %}"
+       class="group relative rounded-lg px-4 py-2 text-sm font-medium {% if active or request.path == href %}bg-sidebar-accent text-sidebar-foreground{% else %}text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground{% endif %}"
        :class="open ? 'flex items-center gap-3' : 'grid place-content-center'"
        {{ attrs }}>
         <c-component is="icon.{{ icon }}" class="size-5 shrink-0" />
