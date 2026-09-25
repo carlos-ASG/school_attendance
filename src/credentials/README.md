@@ -20,16 +20,16 @@ ningún otro emisor: un emisor futuro escribiría en este mismo dominio
 
 Lógica transaccional de mutación del espejo, consumida por el endpoint push
 `POST /api/desktop/credential-events` (router en la app `api`). Los errores
-de dominio (`StudentNotFound`, `CredentialNotFound`) son traducidos por el
+de dominio (`StudentNotFoundError`, `CredentialNotFoundError`) son traducidos por el
 endpoint a 422/404:
 
 - `credential_issue` — upsert de `Credential` + vínculo con el estudiante
   (cierra la relación activa previa; idempotente ante reenvío;
-  `StudentNotFound` si el estudiante no existe; `MaxExpirationRequired` si
+  `StudentNotFoundError` si el estudiante no existe; `MaxExpirationRequiredError` si
   falta el techo `max_expiration_date`, obligatorio en el alta;
-  `ExpirationBeyondMax` si la vigencia excede su `max_expiration_date`).
+  `ExpirationBeyondMaxError` si la vigencia excede su `max_expiration_date`).
 - `credential_revoke` — fija `revoked_at` y cierra la relación activa
-  (`CredentialNotFound` si no existe).
+  (`CredentialNotFoundError` si no existe).
 - `credential_extend_validity` — actualiza `expiration_date` dentro del
-  techo `max_expiration_date` (inmutable tras el alta; `ExpirationBeyondMax`
-  si se excede) (`CredentialNotFound` si no existe).
+  techo `max_expiration_date` (inmutable tras el alta; `ExpirationBeyondMaxError`
+  si se excede) (`CredentialNotFoundError` si no existe).

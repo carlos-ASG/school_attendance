@@ -42,6 +42,116 @@ addopts = "--import-mode=importlib"
 
 [dependency-groups]
 dev = [
+    "django-stubs[compatible-mypy]>=6.1",
+    "mypy>=2.3",
     "pytest>=9.1.1",
     "pytest-django>=4.14.0",
 ]
+
+[tool.ruff]
+target-version = "py312"
+extend-exclude = [
+    "*/migrations/*.py",
+    "staticfiles/*",
+]
+
+[tool.ruff.lint]
+select = [
+    "A",
+    "ASYNC",
+    "B",
+    "BLE",
+    "C4",
+    "C90",
+    "COM",
+    "DJ",
+    "DTZ",
+    "E",
+    "EM",
+    "ERA",
+    "EXE",
+    "F",
+    "FA",
+    "FBT",
+    "FLY",
+    "G",
+    "I",
+    "ICN",
+    "INP",
+    "INT",
+    "ISC",
+    "N",
+    "PD",
+    "PERF",
+    "PGH",
+    "PIE",
+    "PL",
+    "PT",
+    "PTH",
+    "PYI",
+    "Q",
+    "RET",
+    "RSE",
+    "RUF",
+    "S",
+    "SIM",
+    "SLF",
+    "SLOT",
+    "T10",
+    "T20",
+    "TC",
+    "TID",
+    "TRY",
+    "UP",
+    "W",
+    "YTT",
+]
+ignore = [
+    "RUF012", # Meta.constraints no necesita ClassVar (patrón Django del repo)
+    "S101",   # asserts permitidos (tests)
+    "SIM102", # a veces anidar es más claro
+    "EM101",  # los mensajes ValidationError en español son el estilo del repo
+    "EM102",  # idem f-strings en excepciones
+    "TRY003", # idem mensajes largos al raise
+    "RUF001", # español: acentos y guiones largos en strings
+    "RUF002", # idem en docstrings
+    "RUF003", # idem en comentarios
+    "COM812", # el formatter maneja las comas finales (conflicto documentado)
+    "ISC001", # idem strings implícitamente concatenadas
+]
+isort.force-single-line = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "INP001",  # tests/ no es paquete (importlib mode)
+    "PLR2004", # valores literales en aserciones
+    "S105", "S106",  # contraseñas de prueba
+]
+"manage.py" = ["PLC0415"]           # django setup deferido es idiomático
+"src/school/apps.py" = ["PLC0415"]  # import en ready() es idiomático
+"src/config/test_settings.py" = ["F403"]  # star-import de settings es el patrón
+"src/school/management/commands/seed_dev_data.py" = [
+    "N806",  # User = get_user_model() es convención Django
+    "S105",  # contraseña de dev
+]
+"src/integrations/nierika.py" = ["S310"]  # URLs de settings, no input de usuario
+
+# ==== mypy ====
+[tool.mypy]
+python_version = "3.12"
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+plugins = [
+    "mypy_django_plugin.main",
+]
+
+[[tool.mypy.overrides]]
+# Las migraciones generadas no deben producir errores:
+module = "*.migrations.*"
+ignore_errors = true
+
+[tool.django-stubs]
+django_settings_module = "config.test_settings"

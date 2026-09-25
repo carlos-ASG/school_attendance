@@ -1,11 +1,16 @@
 """Attendance-session write services."""
+
 from datetime import date
 
 from django.db import transaction
 from django.utils import timezone
 
-from ..models import AttendanceRecord, AttendanceSession, Course, Teacher
-from ..selectors import get_today_session
+from school.models import AttendanceRecord
+from school.models import AttendanceSession
+from school.models import Course
+from school.models import Teacher
+from school.selectors import get_today_session
+
 from .calendar import validate_session_date
 
 
@@ -17,29 +22,44 @@ def create_attendance_records(session: AttendanceSession) -> int:
     """
     students = session.course.student_group.students.all()
     existing = set(
-        AttendanceRecord.objects.filter(session=session, student__in=students).values_list(
-            'student_id', flat=True
-        )
+        AttendanceRecord.objects.filter(
+            session=session, student__in=students
+        ).values_list(
+            "student_id",
+            flat=True,
+        ),
     )
-    to_create = [AttendanceRecord(session=session, student=s) for s in students if s.id not in existing]
+    to_create = [
+        AttendanceRecord(session=session, student=s)
+        for s in students
+        if s.id not in existing
+    ]
     AttendanceRecord.objects.bulk_create(to_create)
     return len(to_create)
 
 
 def session_create(
-    *, course: Course, value: date, created_by: Teacher
+    *,
+    course: Course,
+    value: date,
+    created_by: Teacher,
 ) -> AttendanceSession:
     """Create a session for `course` on `value` with one record per student."""
     with transaction.atomic():
         session = AttendanceSession.objects.create(
-            course=course, date=value, created_by=created_by
+            course=course,
+            date=value,
+            created_by=created_by,
         )
         create_attendance_records(session)
     return session
 
 
 def session_get_or_create_today(
-    *, course: Course, created_by: Teacher, value: date | None = None
+    *,
+    course: Course,
+    created_by: Teacher,
+    value: date | None = None,
 ) -> tuple[AttendanceSession, bool]:
     """Return (session, created) for the course's session on `value` (today).
 

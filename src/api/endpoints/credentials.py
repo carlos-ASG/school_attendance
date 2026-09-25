@@ -1,23 +1,21 @@
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
+from django.http import HttpResponse
 from ninja import Router
 from ninja.errors import HttpError
 
+from api.auth import DesktopApiKeyAuth
+from api.schemas import CredentialEventApplied
+from api.schemas import CredentialEventIn
+from api.schemas import DesktopStudentOut
 from credentials import services
 from school.models import Student
 
-from ..auth import DesktopApiKeyAuth
-from ..schemas import (
-    CredentialEventApplied,
-    CredentialEventIn,
-    DesktopStudentOut,
-)
-
 router = Router(auth=DesktopApiKeyAuth())
 
-PHOTO_PATH = '/api/desktop/students/{student_id}/photo'
+PHOTO_PATH = "/api/desktop/students/{student_id}/photo"
 
 
 def student_photo_url(student_id: UUID) -> str:
@@ -38,68 +36,74 @@ def _student_to_out(student: Student) -> DesktopStudentOut:
 
 
 def _read_photo_bytes(student: Student) -> bytes:
-    with student.photo.open('rb') as file:
+    with student.photo.open("rb") as file:
         return file.read()
 
 
-@router.get('/students', response=list[DesktopStudentOut])
+@router.get("/students", response=list[DesktopStudentOut])
 async def list_students(request: HttpRequest) -> list[DesktopStudentOut]:
-    students = Student.objects.prefetch_related('student_groups')
+    students = Student.objects.prefetch_related("student_groups")
     return [_student_to_out(student) async for student in students]
 
 
-@router.get('/students/{student_id}/photo')
+@router.get("/students/{student_id}/photo")
 async def student_photo(request: HttpRequest, student_id: UUID) -> HttpResponse:
     student = await Student.objects.filter(pk=student_id).afirst()
     if student is None or not student.photo:
-        raise HttpError(404, 'Foto no encontrada.')
+        raise HttpError(404, "Foto no encontrada.")
     photo_bytes = await sync_to_async(_read_photo_bytes)(student)
-    return HttpResponse(photo_bytes, content_type='image/jpeg')
+    return HttpResponse(photo_bytes, content_type="image/jpeg")
 
 
-@router.post('/credential-events', response={200: CredentialEventApplied})
+@router.post("/credential-events", response={200: CredentialEventApplied})
 async def credential_events(
-    request: HttpRequest, payload: CredentialEventIn
+    request: HttpRequest,
+    payload: CredentialEventIn,
 ) -> CredentialEventApplied:
     try:
-        if payload.operation == 'issued':
+        if payload.operation == "issued":
             if payload.credential is None or payload.student_id is None:
                 raise HttpError(
-                    422, 'El evento issued requiere credential y student_id.'
+                    422,
+                    "El evento issued requiere credential y student_id.",
                 )
             await sync_to_async(services.credential_issue)(
                 student_id=payload.student_id,
                 credential=payload.credential.model_dump(),
             )
-        elif payload.operation == 'revoked':
+        elif payload.operation == "revoked":
             if payload.credential_id is None or payload.revoked_at is None:
                 raise HttpError(
-                    422, 'El evento revoked requiere credential_id y revoked_at.'
+                    422,
+                    "El evento revoked requiere credential_id y revoked_at.",
                 )
             await sync_to_async(services.credential_revoke)(
-                credential_id=payload.credential_id, revoked_at=payload.revoked_at
+                credential_id=payload.credential_id,
+                revoked_at=payload.revoked_at,
             )
         else:
             if payload.credential_id is None or payload.expiration_date is None:
                 raise HttpError(
                     422,
-                    'El evento validity_extended requiere credential_id'
-                    ' y expiration_date.',
+                    "El evento validity_extended requiere credential_id"
+                    " y expiration_date.",
                 )
             await sync_to_async(services.credential_extend_validity)(
                 credential_id=payload.credential_id,
                 expiration_date=payload.expiration_date,
             )
-    except services.StudentNotFound:
-        raise HttpError(422, 'Estudiante no encontrado.') from None
-    except services.MaxExpirationRequired:
+    except services.StudentNotFoundError:
+        raise HttpError(422, "Estudiante no encontrado.") from None
+    except services.MaxExpirationRequiredError:
         raise HttpError(
-            422, 'La credencial requiere max_expiration_date.'
+            422,
+            "La credencial requiere max_expiration_date.",
         ) from None
-    except services.ExpirationBeyondMax:
+    except services.ExpirationBeyondMaxError:
         raise HttpError(
-            422, 'La vigencia excede la expiración máxima de la credencial.'
+            422,
+            "La vigencia excede la expiración máxima de la credencial.",
         ) from None
-    except services.CredentialNotFound:
-        raise HttpError(404, 'Credencial no encontrada.') from None
-    return CredentialEventApplied(status='applied', operation=payload.operation)
+    except services.CredentialNotFoundError:
+        raise HttpError(404, "Credencial no encontrada.") from None
+    return CredentialEventApplied(status="applied", operation=payload.operation)

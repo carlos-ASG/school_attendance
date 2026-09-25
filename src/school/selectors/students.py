@@ -2,7 +2,8 @@ from uuid import UUID
 
 from django.db.models import QuerySet
 
-from ..models import Course, Student
+from school.models import Course
+from school.models import Student
 
 
 def get_student(*, student_id: UUID) -> Student | None:

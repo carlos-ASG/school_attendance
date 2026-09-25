@@ -24,106 +24,106 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 env = environ.Env(
     DEBUG=(bool, True),
     ALLOWED_HOSTS=(list, []),
-    NIERIKA_API_BASE_URL=(str, ''),
-    NIERIKA_API_KEY=(str, ''),
+    NIERIKA_API_BASE_URL=(str, ""),
+    NIERIKA_API_KEY=(str, ""),
 )
-environ.Env.read_env(BASE_DIR / '.env')
+environ.Env.read_env(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env(
-    'SECRET_KEY',
-    default='django-insecure-0i-%3yp(yplp51#me6=rjzmht4%$c^m8y)1e$1u(%o4yvjt5o&',
+    "SECRET_KEY",
+    default="django-insecure-0i-%3yp(yplp51#me6=rjzmht4%$c^m8y)1e$1u(%o4yvjt5o&",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
+DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'unfold',
-    'unfold.contrib.filters',
-    'unfold.contrib.forms',
-    'unfold.contrib.inlines',
-    'unfold.contrib.import_export',
-    'import_export',
-    'django.contrib.admin',
-    'accounts',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'django_htmx',
-    'django_cotton',
-    'django_tailwind_cli',
-    'ninja',
-    'core_ui',
-    'allauth',
-    'allauth.account',
-    'school',
-    'teacher_panel',
-    'api',
-    'credentials',
-    'integrations',
-    'django.forms',
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
+    "unfold.contrib.inlines",
+    "unfold.contrib.import_export",
+    "import_export",
+    "django.contrib.admin",
+    "accounts",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django_htmx",
+    "django_cotton",
+    "django_tailwind_cli",
+    "ninja",
+    "core_ui",
+    "allauth",
+    "allauth.account",
+    "school",
+    "teacher_panel",
+    "api",
+    "credentials",
+    "integrations",
+    "django.forms",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_htmx.middleware.HtmxMiddleware',
-    'allauth.account.middleware.AccountMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 # Authentication: allauth first (account flows), ModelBackend as fallback for admin
 
 AUTHENTICATION_BACKENDS = [
-    'allauth.account.auth_backends.AuthenticationBackend',
-    'django.contrib.auth.backends.ModelBackend',
+    "allauth.account.auth_backends.AuthenticationBackend",
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = "accounts.User"
 
-ROOT_URLCONF = 'config.urls'
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASES = {
-    'default': env.db(
-        'DATABASE_URL',
+    "default": env.db(
+        "DATABASE_URL",
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-    )
+    ),
 }
 
 
@@ -132,16 +132,18 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": (
+            "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+        )
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -149,21 +151,21 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'es'
+LANGUAGE_CODE = "es"
 
-LOGIN_URL = 'account_login'
-LOGIN_REDIRECT_URL = 'teacher_panel:dashboard'
-LOGOUT_REDIRECT_URL = 'account_login'
+LOGIN_URL = "account_login"
+LOGIN_REDIRECT_URL = "teacher_panel:dashboard"
+LOGOUT_REDIRECT_URL = "account_login"
 
 # django-allauth
 
-ACCOUNT_ADAPTER = 'config.adapters.AccountAdapter'
+ACCOUNT_ADAPTER = "config.adapters.AccountAdapter"
 
-ACCOUNT_LOGIN_METHODS = {'username'}
+ACCOUNT_LOGIN_METHODS = {"username"}
 
-ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_EMAIL_VERIFICATION = "optional"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -173,72 +175,72 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 
 # User-uploaded media (student photos, local dev)
 
-MEDIA_URL = 'media/'
+MEDIA_URL = "media/"
 
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Design-system app (cotton components, allauth templates, tailwind assets)
 
-STATICFILES_DIRS = [BASE_DIR / 'src' / 'core_ui' / 'static']
+STATICFILES_DIRS = [BASE_DIR / "src" / "core_ui" / "static"]
 
 # Tailwind CSS via django-tailwind-cli (uv-only, no node)
 
-TAILWIND_CLI_SRC_CSS = 'src/core_ui/input.css'
-TAILWIND_CLI_DIST_CSS = 'core-ui/css/output.css'
+TAILWIND_CLI_SRC_CSS = "src/core_ui/input.css"
+TAILWIND_CLI_DIST_CSS = "core-ui/css/output.css"
 
 # Form widget templates: resolve from app template dirs so core_ui can override
 # django/forms/widgets/*.html (all default Textareas render via <c-textarea>)
 
-FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 
 # Django Unfold admin theme
 # https://unfoldadmin.com/docs/
 
 UNFOLD = {
-    'SITE_TITLE': 'Asistencia Escolar',
-    'SITE_HEADER': 'Administración de Asistencia Escolar',
-    'SIDEBAR': {
-        'navigation': [
+    "SITE_TITLE": "Asistencia Escolar",
+    "SITE_HEADER": "Administración de Asistencia Escolar",
+    "SIDEBAR": {
+        "navigation": [
             {
-                'title': 'Asistencia',
-                'items': [
+                "title": "Asistencia",
+                "items": [
                     {
-                        'title': 'Estudiantes',
-                        'link': '/admin/school/student/',
+                        "title": "Estudiantes",
+                        "link": "/admin/school/student/",
                     },
                     {
-                        'title': 'Grupos de estudiantes',
-                        'link': '/admin/school/studentgroup/',
+                        "title": "Grupos de estudiantes",
+                        "link": "/admin/school/studentgroup/",
                     },
                     {
-                        'title': 'Sesiones de asistencia',
-                        'link': '/admin/school/attendancesession/',
+                        "title": "Sesiones de asistencia",
+                        "link": "/admin/school/attendancesession/",
                     },
                     {
-                        'title': 'Reportes',
-                        'link': '/admin/school/attendancesession/reports/',
+                        "title": "Reportes",
+                        "link": "/admin/school/attendancesession/reports/",
                     },
                 ],
             },
             {
-                'title': 'Académico',
-                'items': [
+                "title": "Académico",
+                "items": [
                     {
-                        'title': 'Profesores',
-                        'link': '/admin/school/teacher/',
+                        "title": "Profesores",
+                        "link": "/admin/school/teacher/",
                     },
                     {
-                        'title': 'Materias',
-                        'link': '/admin/school/subject/',
+                        "title": "Materias",
+                        "link": "/admin/school/subject/",
                     },
                     {
-                        'title': 'Cursos',
-                        'link': '/admin/school/course/',
+                        "title": "Cursos",
+                        "link": "/admin/school/course/",
                     },
                 ],
             },
@@ -251,8 +253,8 @@ UNFOLD = {
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
 MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+    "default": {
+        "BACKEND": "django.core.mail.backends.console.EmailBackend",
     },
 }
 
@@ -260,6 +262,6 @@ MAILERS = {
 # Nierika integration (credential mirror sync). Without NIERIKA_API_KEY the
 # credential sync is a no-op; both default to empty strings.
 
-NIERIKA_API_BASE_URL = env('NIERIKA_API_BASE_URL')
+NIERIKA_API_BASE_URL = env("NIERIKA_API_BASE_URL")
 
-NIERIKA_API_KEY = env('NIERIKA_API_KEY')
+NIERIKA_API_KEY = env("NIERIKA_API_KEY")

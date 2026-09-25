@@ -12,29 +12,29 @@ class StudentCredential(models.Model):
     student = models.ForeignKey(
         Student,
         on_delete=models.CASCADE,
-        related_name='credential_links',
-        verbose_name='Estudiante',
+        related_name="credential_links",
+        verbose_name="Estudiante",
     )
     credential = models.OneToOneField(
         Credential,
         on_delete=models.CASCADE,
-        related_name='student_link',
-        verbose_name='Credencial',
+        related_name="student_link",
+        verbose_name="Credencial",
     )
-    linked_at = models.DateTimeField('Fecha de vinculación', null=True, blank=True)
-    unlinked_at = models.DateTimeField('Fecha de desvinculación', null=True, blank=True)
+    linked_at = models.DateTimeField("Fecha de vinculación", null=True, blank=True)
+    unlinked_at = models.DateTimeField("Fecha de desvinculación", null=True, blank=True)
 
     class Meta:
-        ordering = ('-linked_at',)
-        constraints = [  # noqa: RUF012
+        ordering = ("-linked_at",)
+        constraints = [
             models.UniqueConstraint(
-                fields=['student'],
+                fields=["student"],
                 condition=Q(unlinked_at__isnull=True),
-                name='studentcredential_one_active_per_student',
-            )
+                name="studentcredential_one_active_per_student",
+            ),
         ]
-        verbose_name = 'Relación estudiante-credencial'
-        verbose_name_plural = 'Relaciones estudiante-credencial'
+        verbose_name = "Relación estudiante-credencial"
+        verbose_name_plural = "Relaciones estudiante-credencial"
 
     def __str__(self) -> str:
-        return f'{self.student} ↔ {self.credential}'
+        return f"{self.student} ↔ {self.credential}"

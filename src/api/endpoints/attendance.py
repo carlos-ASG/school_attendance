@@ -6,32 +6,35 @@ from django.utils import timezone
 from ninja import Router
 from ninja.errors import HttpError
 
-from school.models import AttendanceRecord, AttendanceSession
-
-from ..schemas import (
-    AttendanceRecordBulkIn,
-    AttendanceRecordOut,
-    AttendanceUpdateError,
-    RecordError,
-)
+from api.schemas import AttendanceRecordBulkIn
+from api.schemas import AttendanceRecordOut
+from api.schemas import AttendanceUpdateError
+from api.schemas import RecordError
+from school.models import AttendanceRecord
+from school.models import AttendanceSession
 
 router = Router()
 
 
 @router.patch(
-    '/sessions/{session_id}/records',
+    "/sessions/{session_id}/records",
     response={200: list[AttendanceRecordOut], 422: AttendanceUpdateError},
 )
 def update_session_records(
-    request: HttpRequest, session_id: uuid.UUID, payload: AttendanceRecordBulkIn
+    request: HttpRequest,
+    session_id: uuid.UUID,
+    payload: AttendanceRecordBulkIn,
 ) -> list[AttendanceRecordOut] | tuple[int, AttendanceUpdateError]:
     session = (
-        AttendanceSession.objects.select_related('course__school_cycle')
-        .filter(pk=session_id, course__teacher=request.auth)
+        AttendanceSession.objects.select_related("course__school_cycle")
+        .filter(
+            pk=session_id,
+            course__teacher=request.auth,  # type: ignore[attr-defined]
+        )
         .first()
     )
     if session is None:
-        raise HttpError(404, 'Sesión no encontrada.')
+        raise HttpError(404, "Sesión no encontrada.")
     if session.is_frozen():
         raise HttpError(422, AttendanceSession.FROZEN_MESSAGE)
 
@@ -41,7 +44,7 @@ def update_session_records(
         for record in AttendanceRecord.objects.filter(session=session, pk__in=entries)
     }
     errors = [
-        RecordError(id=record_id, error='No pertenece a la sesión indicada.')
+        RecordError(id=record_id, error="No pertenece a la sesión indicada.")
         for record_id in entries
         if record_id not in found
     ]
@@ -58,6 +61,6 @@ def update_session_records(
         records.append(record)
 
     with transaction.atomic():
-        AttendanceRecord.objects.bulk_update(records, ['status', 'notes', 'updated_at'])
+        AttendanceRecord.objects.bulk_update(records, ["status", "notes", "updated_at"])
 
     return [AttendanceRecordOut.model_validate(record) for record in records]

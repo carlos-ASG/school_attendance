@@ -7,12 +7,16 @@ date is valid only when it falls inside the course's cycle, is not a
 non-school day, and falls on a weekday the course's ClassSchedule slots
 cover (a course without slots has no valid session dates).
 """
+
 from datetime import date
 
 from django.core.exceptions import ValidationError
 
-from ..models import ClassSchedule, Course, NonSchoolDay, SchoolCycle
-from ..selectors import get_non_school_day
+from school.models import ClassSchedule
+from school.models import Course
+from school.models import NonSchoolDay
+from school.models import SchoolCycle
+from school.selectors import get_non_school_day
 
 
 def validate_session_date(
@@ -38,20 +42,20 @@ def validate_session_date(
     """
     cycle: SchoolCycle | None = course.school_cycle
     if cycle is None:
-        raise ValidationError('El curso no tiene ciclo escolar asignado.')
+        raise ValidationError("El curso no tiene ciclo escolar asignado.")
     if not cycle.contains_date(value):
         raise ValidationError(
-            f'La fecha está fuera del ciclo {cycle} '
-            f'({cycle.start_date} al {cycle.end_date}).'
+            f"La fecha está fuera del ciclo {cycle} "
+            f"({cycle.start_date} al {cycle.end_date}).",
         )
     if non_school_day is None:
         non_school_day = get_non_school_day(cycle=cycle, value=value)
     if non_school_day is not None:
-        formatted = value.strftime('%d/%m/%Y')
-        raise ValidationError(f'El {formatted} es inhábil: {non_school_day.name}.')
+        formatted = value.strftime("%d/%m/%Y")
+        raise ValidationError(f"El {formatted} es inhábil: {non_school_day.name}.")
     scheduled_weekdays = {slot.weekday for slot in course.schedule_slots.all()}
     if not scheduled_weekdays:
-        raise ValidationError('El curso no tiene horario asignado.')
+        raise ValidationError("El curso no tiene horario asignado.")
     if value.weekday() not in scheduled_weekdays:
         weekday = ClassSchedule.Weekday(value.weekday()).label.lower()
-        raise ValidationError(f'El curso no tiene clase los días {weekday}.')
+        raise ValidationError(f"El curso no tiene clase los días {weekday}.")

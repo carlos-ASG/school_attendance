@@ -1,11 +1,14 @@
 from typing import Any
+from uuid import UUID
 
 from django.db.models import Count
 
-from ..models import AttendanceRecord, Course, Student
+from school.models import AttendanceRecord
+from school.models import Course
+from school.models import Student
 
 
-def get_course_attendance_summary(*, course: Course) -> dict[int, dict[str, Any]]:
+def get_course_attendance_summary(*, course: Course) -> dict[UUID, dict[str, Any]]:
     """Return a lookup dict keyed by student pk with attendance summary.
 
     Counts PRESENT, LATE and EXCUSED records as attended, using the total
@@ -17,10 +20,10 @@ def get_course_attendance_summary(*, course: Course) -> dict[int, dict[str, Any]
     if total == 0:
         return {
             student.pk: {
-                'student': student,
-                'attended': 0,
-                'total': 0,
-                'percentage': '0',
+                "student": student,
+                "attended": 0,
+                "total": 0,
+                "percentage": "0",
             }
             for student in students
         }
@@ -29,36 +32,38 @@ def get_course_attendance_summary(*, course: Course) -> dict[int, dict[str, Any]
             session__course=course,
             status__in=AttendanceRecord.ATTENDED_STATUSES,
         )
-        .values('student_id')
-        .annotate(attended=Count('pk'))
+        .values("student_id")
+        .annotate(attended=Count("pk"))
     )
-    attended_by_student = {row['student_id']: row['attended'] for row in attended_rows}
+    attended_by_student = {row["student_id"]: row["attended"] for row in attended_rows}
     summary = {}
     for student in students:
         attended = attended_by_student.get(student.pk, 0)
         summary[student.pk] = {
-            'student': student,
-            'attended': attended,
-            'total': total,
-            'percentage': f'{attended / total * 100:.1f}',
+            "student": student,
+            "attended": attended,
+            "total": total,
+            "percentage": f"{attended / total * 100:.1f}",
         }
     return summary
 
 
 def get_student_attendance_summary(
-    *, course: Course, student: Student
+    *,
+    course: Course,
+    student: Student,
 ) -> dict[str, Any]:
     """Return the single-student summary: attended / total sessions (D3)."""
     total = course.sessions.count()
     if total == 0:
-        return {'attended': 0, 'total': 0, 'percentage': '0'}
+        return {"attended": 0, "total": 0, "percentage": "0"}
     attended = AttendanceRecord.objects.filter(
         session__course=course,
         student=student,
         status__in=AttendanceRecord.ATTENDED_STATUSES,
     ).count()
     return {
-        'attended': attended,
-        'total': total,
-        'percentage': f'{attended / total * 100:.1f}',
+        "attended": attended,
+        "total": total,
+        "percentage": f"{attended / total * 100:.1f}",
     }

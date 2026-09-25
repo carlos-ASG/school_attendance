@@ -27,7 +27,7 @@ class IssuedCredentialIn(Schema):
 class CredentialEventIn(Schema):
     """Evento push discriminado por operación (payload plano según contrato)."""
 
-    operation: Literal['issued', 'revoked', 'validity_extended']
+    operation: Literal["issued", "revoked", "validity_extended"]
     occurred_at: datetime
     # issued
     student_id: UUID | None = None

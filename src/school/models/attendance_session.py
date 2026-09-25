@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from typing import TYPE_CHECKING
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -10,34 +10,48 @@ from .base import UUIDv7Model
 from .course import Course
 from .teacher import Teacher
 
+if TYPE_CHECKING:
+    import datetime
+
 
 class AttendanceSession(UUIDv7Model):
-    FROZEN_MESSAGE = 'Esta sesión pertenece a un ciclo anterior y es de solo lectura.'
+    FROZEN_MESSAGE = "Esta sesión pertenece a un ciclo anterior y es de solo lectura."
 
     course = models.ForeignKey(
-        Course, on_delete=models.CASCADE, related_name='sessions', verbose_name='Curso'
+        Course,
+        on_delete=models.CASCADE,
+        related_name="sessions",
+        verbose_name="Curso",
     )
-    date = models.DateField('Fecha')
+    date = models.DateField("Fecha")
     created_by = models.ForeignKey(
-        Teacher, on_delete=models.PROTECT, related_name='created_sessions', verbose_name='Creado por'
+        Teacher,
+        on_delete=models.PROTECT,
+        related_name="created_sessions",
+        verbose_name="Creado por",
     )
-    created_at = models.DateTimeField('Fecha de creación', auto_now_add=True)
+    created_at = models.DateTimeField("Fecha de creación", auto_now_add=True)
     updated_at = models.DateTimeField(
-        'Última actualización', auto_now=True, null=True, blank=True
+        "Última actualización",
+        auto_now=True,
+        null=True,
+        blank=True,
     )
 
     class Meta:
-        ordering = ('-date', '-created_at')
-        constraints = [  # noqa: RUF012
-            models.UniqueConstraint(fields=('course', 'date'), name='unique_session_course_date')
+        ordering = ("-date", "-created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("course", "date"), name="unique_session_course_date"
+            ),
         ]
-        verbose_name = 'Sesión de asistencia'
-        verbose_name_plural = 'Sesiones de asistencia'
+        verbose_name = "Sesión de asistencia"
+        verbose_name_plural = "Sesiones de asistencia"
 
     def __str__(self) -> str:
-        return f'{self.course} — {self.date}'
+        return f"{self.course} — {self.date}"
 
-    def is_frozen(self, value: date | None = None) -> bool:
+    def is_frozen(self, value: datetime.date | None = None) -> bool:
         """Return True when this session is read-only for its Teacher (D1).
 
         A session is frozen when its course's School Cycle does not contain
@@ -79,15 +93,15 @@ class AttendanceSession(UUIDv7Model):
         """
         super().clean()
         if self.date and self.date > timezone.now().date():
-            raise ValidationError({'date': 'La fecha no puede ser posterior a hoy.'})
+            raise ValidationError({"date": "La fecha no puede ser posterior a hoy."})
         if self._state.adding and self.course_id and self.date:
             # Creation-time-only validation (design D6): existing sessions
             # are never invalidated or blocked by later calendar changes.
             # _state.adding (not pk is None) because the UUID v7 default
             # assigns a pk at __init__ for every new instance.
-            from ..services import validate_session_date
+            from school.services import validate_session_date  # noqa: PLC0415
 
             try:
                 validate_session_date(course=self.course, value=self.date)
             except ValidationError as error:
-                raise ValidationError({'date': error.messages}) from error
+                raise ValidationError({"date": error.messages}) from error

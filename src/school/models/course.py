@@ -11,33 +11,45 @@ class Course(UUIDv7Model):
     school_cycle = models.ForeignKey(
         SchoolCycle,
         on_delete=models.PROTECT,
-        related_name='courses',
-        verbose_name='Ciclo escolar',
+        related_name="courses",
+        verbose_name="Ciclo escolar",
     )
     student_group = models.ForeignKey(
-        StudentGroup, on_delete=models.PROTECT, related_name='courses', verbose_name='Grupo de estudiantes'
+        StudentGroup,
+        on_delete=models.PROTECT,
+        related_name="courses",
+        verbose_name="Grupo de estudiantes",
     )
     teacher = models.ForeignKey(
-        Teacher, on_delete=models.PROTECT, related_name='courses', verbose_name='Profesor'
+        Teacher,
+        on_delete=models.PROTECT,
+        related_name="courses",
+        verbose_name="Profesor",
     )
     subject = models.ForeignKey(
-        Subject, on_delete=models.PROTECT, related_name='courses', verbose_name='Materia'
+        Subject,
+        on_delete=models.PROTECT,
+        related_name="courses",
+        verbose_name="Materia",
     )
-    classroom = models.CharField('Aula', max_length=50, blank=True, default='')
+    classroom = models.CharField("Aula", max_length=50, blank=True, default="")
     updated_at = models.DateTimeField(
-        'Última actualización', auto_now=True, null=True, blank=True
+        "Última actualización",
+        auto_now=True,
+        null=True,
+        blank=True,
     )
 
     class Meta:
-        constraints = [  # noqa: RUF012
+        constraints = [
             models.UniqueConstraint(
-                fields=('teacher', 'subject', 'student_group', 'school_cycle'),
-                name='unique_course_teacher_subject_group_school_cycle',
+                fields=("teacher", "subject", "student_group", "school_cycle"),
+                name="unique_course_teacher_subject_group_school_cycle",
             ),
         ]
-        ordering = ('subject__name',)
-        verbose_name = 'Curso'
-        verbose_name_plural = 'Cursos'
+        ordering = ("subject__name",)
+        verbose_name = "Curso"
+        verbose_name_plural = "Cursos"
 
     def __str__(self) -> str:
-        return f'{self.subject} — {self.teacher} ({self.student_group})'
+        return f"{self.subject} — {self.teacher} ({self.student_group})"

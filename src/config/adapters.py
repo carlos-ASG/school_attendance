@@ -8,8 +8,8 @@ class AccountAdapter(DefaultAccountAdapter):
 
     def get_login_redirect_url(self, request: HttpRequest) -> str:
         if request.user.is_staff:
-            return reverse('admin:index')
-        return reverse('teacher_panel:dashboard')
+            return reverse("admin:index")
+        return reverse("teacher_panel:dashboard")
 
     def is_open_for_signup(self, request: HttpRequest) -> bool:
         # Business rule: accounts are created by admins via django-admin.

@@ -1,4 +1,4 @@
-from ..models import Teacher
+from school.models import Teacher
 
 
 def get_teacher(*, user) -> Teacher | None:

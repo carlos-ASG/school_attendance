@@ -10,21 +10,21 @@ class Credential(models.Model):
     """
 
     class Status(models.TextChoices):
-        ACTIVE = 'Active', 'Activa'
-        EXPIRED = 'Expired', 'Expirada'
-        REVOKED = 'Revoked', 'Revocada'
+        ACTIVE = "Active", "Activa"
+        EXPIRED = "Expired", "Expirada"
+        REVOKED = "Revoked", "Revocada"
 
-    id = models.UUIDField('Id de Nierika', primary_key=True, editable=False)
-    serial_number = models.CharField('Número de serie', max_length=100, db_index=True)
-    issued_at = models.DateTimeField('Fecha de emisión', null=True, blank=True)
-    expiration_date = models.DateTimeField('Fecha de expiración', null=True, blank=True)
-    max_expiration_date = models.DateTimeField('Expiración máxima')
-    revoked_at = models.DateTimeField('Fecha de revocación', null=True, blank=True)
-    synced_at = models.DateTimeField('Última sincronización', null=True, blank=True)
+    id = models.UUIDField("Id de Nierika", primary_key=True, editable=False)
+    serial_number = models.CharField("Número de serie", max_length=100, db_index=True)
+    issued_at = models.DateTimeField("Fecha de emisión", null=True, blank=True)
+    expiration_date = models.DateTimeField("Fecha de expiración", null=True, blank=True)
+    max_expiration_date = models.DateTimeField("Expiración máxima")
+    revoked_at = models.DateTimeField("Fecha de revocación", null=True, blank=True)
+    synced_at = models.DateTimeField("Última sincronización", null=True, blank=True)
 
     class Meta:
-        verbose_name = 'Credencial'
-        verbose_name_plural = 'Credenciales'
+        verbose_name = "Credencial"
+        verbose_name_plural = "Credenciales"
 
     def __str__(self) -> str:
         return self.serial_number
