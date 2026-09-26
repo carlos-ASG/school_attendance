@@ -112,6 +112,126 @@ def test_course_summary_uses_bounded_queries(
         _ = summary[beto.pk]["percentage"]
 
 
+# get_course_attendance_summary with date bounds
+
+
+def test_course_summary_full_range_scopes_numerator_and_denominator(
+    course,
+    teacher,
+    students,
+):
+    beto, carla, diego = students
+    monday = create_session(course, teacher, MONDAY)
+    tuesday = create_session(course, teacher, TUESDAY)
+    wednesday = create_session(course, teacher, WEDNESDAY)
+    create_record(monday, beto, AttendanceRecord.Status.PRESENT)
+    create_record(tuesday, beto, AttendanceRecord.Status.LATE)
+    create_record(wednesday, beto, AttendanceRecord.Status.ABSENT)
+    create_record(monday, carla, AttendanceRecord.Status.EXCUSED)
+
+    summary = get_course_attendance_summary(
+        course=course,
+        date_from=TUESDAY,
+        date_to=TUESDAY,
+    )
+
+    assert summary[beto.pk]["attended"] == 1
+    assert summary[beto.pk]["total"] == 1
+    assert summary[beto.pk]["percentage"] == "100.0"
+    assert summary[carla.pk]["attended"] == 0
+    assert summary[carla.pk]["total"] == 1
+    assert summary[carla.pk]["percentage"] == "0.0"
+    assert summary[diego.pk]["total"] == 1
+
+
+def test_course_summary_open_upper_bound_counts_from_date_onward(
+    course,
+    teacher,
+    students,
+):
+    beto, carla, _ = students
+    monday = create_session(course, teacher, MONDAY)
+    tuesday = create_session(course, teacher, TUESDAY)
+    thursday = create_session(course, teacher, THURSDAY)
+    create_record(monday, beto, AttendanceRecord.Status.PRESENT)
+    create_record(tuesday, beto, AttendanceRecord.Status.ABSENT)
+    create_record(thursday, carla, AttendanceRecord.Status.PRESENT)
+
+    summary = get_course_attendance_summary(course=course, date_from=TUESDAY)
+
+    assert summary[beto.pk]["total"] == 2
+    assert summary[beto.pk]["attended"] == 0
+    assert summary[carla.pk]["attended"] == 1
+    assert summary[carla.pk]["total"] == 2
+    assert summary[carla.pk]["percentage"] == "50.0"
+
+
+def test_course_summary_open_lower_bound_counts_up_to_date(
+    course,
+    teacher,
+    students,
+):
+    beto, _, _ = students
+    monday = create_session(course, teacher, MONDAY)
+    create_session(course, teacher, TUESDAY)
+    thursday = create_session(course, teacher, THURSDAY)
+    create_record(monday, beto, AttendanceRecord.Status.PRESENT)
+    create_record(thursday, beto, AttendanceRecord.Status.PRESENT)
+
+    summary = get_course_attendance_summary(course=course, date_to=WEDNESDAY)
+
+    assert summary[beto.pk]["total"] == 2
+    assert summary[beto.pk]["attended"] == 1
+    assert summary[beto.pk]["percentage"] == "50.0"
+
+
+def test_course_summary_missing_bounds_matches_unbounded_summary(
+    course,
+    teacher,
+    students,
+):
+    beto, carla, _ = students
+    monday = create_session(course, teacher, MONDAY)
+    tuesday = create_session(course, teacher, TUESDAY)
+    create_record(monday, beto, AttendanceRecord.Status.PRESENT)
+    create_record(tuesday, beto, AttendanceRecord.Status.ABSENT)
+    create_record(monday, carla, AttendanceRecord.Status.LATE)
+
+    baseline = get_course_attendance_summary(course=course)
+    filtered = get_course_attendance_summary(
+        course=course,
+        date_from=None,
+        date_to=None,
+    )
+
+    assert filtered == baseline
+    assert filtered[beto.pk]["attended"] == 1
+    assert filtered[beto.pk]["total"] == 2
+    assert filtered[carla.pk]["percentage"] == "50.0"
+
+
+def test_course_summary_range_without_sessions_returns_zeroed(
+    course,
+    teacher,
+    students,
+):
+    beto, carla, diego = students
+    monday = create_session(course, teacher, MONDAY)
+    create_record(monday, beto, AttendanceRecord.Status.PRESENT)
+
+    summary = get_course_attendance_summary(
+        course=course,
+        date_from=THURSDAY,
+        date_to=THURSDAY,
+    )
+
+    for student in (beto, carla, diego):
+        row = summary[student.pk]
+        assert row["attended"] == 0
+        assert row["total"] == 0
+        assert row["percentage"] == "0"
+
+
 # get_student_attendance_summary
 
 

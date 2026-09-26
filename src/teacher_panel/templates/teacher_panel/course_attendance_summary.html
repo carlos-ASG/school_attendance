@@ -1,0 +1,116 @@
+{% extends "teacher_panel/base.html" %}
+
+{% block title %}{{ course.subject }} — Resumen de asistencia — Panel del Profesor{% endblock %}
+
+{% block breadcrumb %}
+    <c-breadcrumb>
+        <c-breadcrumb.item href="{% url 'teacher_panel:dashboard' %}">
+            <c-icon.house class="size-4"/>
+        </c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item href="{% url 'teacher_panel:course_detail' course.pk %}">{{ course.subject }}</c-breadcrumb.item>
+        <c-breadcrumb.separator/>
+        <c-breadcrumb.item>Resumen de asistencia</c-breadcrumb.item>
+    </c-breadcrumb>
+{% endblock %}
+
+{% block content %}
+    <c-layout.surface>
+        <c-slot name="header">
+            <div class="flex flex-col gap-1">
+                <h2 class="text-xl font-semibold tracking-tight">{{ course.subject }} — Resumen de asistencia</h2>
+                <p class="text-sm text-muted-foreground">{{ course.student_group }}</p>
+            </div>
+        </c-slot>
+
+        <c-card>
+            <c-card.header>
+                <c-card.title>
+                    <span class="inline-flex items-center gap-2">
+                        <c-icon.sliders_horizontal class="size-4" />
+                        Filtros
+                    </span>
+                </c-card.title>
+                <c-card.description>
+                    Sin fechas se muestra el acumulado de todas las sesiones.
+                </c-card.description>
+            </c-card.header>
+            <c-card.content>
+                <form method="get"
+                      hx-get="{{ request.path }}"
+                      hx-trigger="submit"
+                      hx-target="#attendance-summary-content"
+                      hx-indicator="#attendance-summary"
+                      hx-swap="innerHTML"
+                      hx-push-url="true"
+                      hx-disabled-elt=".filter-actions"
+                      class="flex flex-row items-end gap-3">
+                    <div class="flex flex-col gap-2">
+                        <c-label for="{{ form.date_from.id_for_label }}">{{ form.date_from.label }}</c-label>
+                        <c-input type="date" name="{{ form.date_from.html_name }}" id="{{ form.date_from.id_for_label }}" value="{{ form.date_from.value|default:'' }}"/>
+                        {% if form.date_from.errors %}<p class="text-sm text-destructive">{{ form.date_from.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <c-label for="{{ form.date_to.id_for_label }}">{{ form.date_to.label }}</c-label>
+                        <c-input type="date" name="{{ form.date_to.html_name }}" id="{{ form.date_to.id_for_label }}" value="{{ form.date_to.value|default:'' }}"/>
+                        {% if form.date_to.errors %}<p class="text-sm text-destructive">{{ form.date_to.errors.0 }}</p>{% endif %}
+                    </div>
+                    <c-button type="submit" class="filter-actions">
+                        Filtrar
+                    </c-button>
+                    <c-button type="button" variant="outline" hx-get="{{ request.path }}" hx-target="#attendance-summary-content" hx-indicator="#attendance-summary" hx-swap="innerHTML" hx-push-url="true" hx-disabled-elt=".filter-actions" class="filter-actions">
+                        Limpiar
+                    </c-button>
+                </form>
+            </c-card.content>
+        </c-card>
+
+        <div id="attendance-summary">
+            <div id="attendance-summary-content" class="htmx-content">
+                {% partialdef attendance_summary inline %}
+                <c-card>
+                <c-card.header>
+                    <c-card.title>
+                        <span class="inline-flex items-center gap-2">
+                            <c-icon.calendar class="size-4" />
+                            Asistencia por estudiante
+                        </span>
+                    </c-card.title>
+                </c-card.header>
+                <c-card.content>
+                    {% if form.non_field_errors %}
+                        <p class="mb-3 text-sm text-destructive">{{ form.non_field_errors.0 }}</p>
+                    {% endif %}
+                    {% if has_sessions %}
+                        <c-detail_list header_label="Estudiante" header_value="Asistencia">
+                            {% for student_pk, row in attendance.items %}
+                                <c-detail_list.item>
+                                    <c-slot name="label">
+                                        <c-quiet_text href="{% url 'teacher_panel:course_student_detail' course.pk row.student.pk %}">{{ row.student }}</c-quiet_text>
+                                    </c-slot>
+                                    {{ row.attended }}/{{ row.total }} ({{ row.percentage }}%)
+                                </c-detail_list.item>
+                            {% empty %}
+                                <c-detail_list.item>No hay estudiantes.</c-detail_list.item>
+                            {% endfor %}
+                        </c-detail_list>
+                    {% elif not form.non_field_errors %}
+                        <p class="text-sm text-muted-foreground">
+                            {% if form.date_from.value or form.date_to.value %}
+                                No hay sesiones en el rango seleccionado.
+                            {% else %}
+                                Aún no hay sesiones registradas.
+                            {% endif %}
+                        </p>
+                    {% endif %}
+                </c-card.content>
+            </c-card>
+            {% endpartialdef attendance_summary %}
+            </div>
+            <div role="status" aria-label="Cargando" class="htmx-indicator py-10 text-center">
+                <c-icon.loader_circle class="mx-auto size-8 animate-spin text-muted-foreground" />
+                <p class="mt-4 font-medium text-muted-foreground">Cargando…</p>
+            </div>
+        </div>
+    </c-layout.surface>
+{% endblock %}

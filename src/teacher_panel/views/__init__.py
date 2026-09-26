@@ -1,4 +1,5 @@
 from .auth import HomeRedirectView
+from .course_attendance_summary import CourseAttendanceSummaryView
 from .course_detail import CourseDetailView
 from .course_session_history import CourseSessionHistoryView
 from .course_session_history import SessionDeleteView
@@ -12,6 +13,7 @@ from .today_session import TodaySessionCreateView
 from .today_session import TodaySessionDetailView
 
 __all__ = [
+    "CourseAttendanceSummaryView",
     "CourseDetailView",
     "CourseSessionHistoryView",
     "DashboardView",

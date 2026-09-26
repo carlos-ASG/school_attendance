@@ -42,6 +42,41 @@ class SessionForm(forms.Form):
         return date_value
 
 
+class AttendanceSummaryFilterForm(forms.Form):
+    """Optional date range bounds for the course attendance summary page."""
+
+    date_from = forms.DateField(
+        required=False,
+        label="Desde",
+        widget=forms.DateInput(
+            attrs={"type": "date"},
+            format="%Y-%m-%d",
+        ),
+        input_formats=["%Y-%m-%d", "%d/%m/%Y"],
+        localize=False,
+    )
+    date_to = forms.DateField(
+        required=False,
+        label="Hasta",
+        widget=forms.DateInput(
+            attrs={"type": "date"},
+            format="%Y-%m-%d",
+        ),
+        input_formats=["%Y-%m-%d", "%d/%m/%Y"],
+        localize=False,
+    )
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean()
+        date_from = cleaned.get("date_from")
+        date_to = cleaned.get("date_to")
+        if date_from and date_to and date_from > date_to:
+            raise forms.ValidationError(
+                "La fecha inicial no puede ser posterior a la fecha final.",
+            )
+        return cleaned
+
+
 AttendanceEditFormSet = forms.modelformset_factory(
     AttendanceRecord,
     fields=("status", "notes"),

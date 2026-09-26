@@ -44,6 +44,10 @@
                         <c-icon.calendar />
                         Historial de sesiones
                     </c-button>
+                    <c-button href="{% url 'teacher_panel:course_attendance_summary' course.pk %}" variant="outline">
+                        <c-icon.file_text />
+                        Resumen de asistencia
+                    </c-button>
                 </div>
             </c-card.content>
         </c-card>

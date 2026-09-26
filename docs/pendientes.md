@@ -13,4 +13,6 @@
 - [ ] implementar soporte para clases de ayuda fuera de horario de clase que no tengas repercusiones con la asistencia normal
 - [ ] revisar test_credential_events.py
 
+- [ ] Agregar iconos al lado de los titulos de las cards
+
 - capacidad para configurar fecha maxima de expiracion de credencial en un rango de 3 a 5 años
